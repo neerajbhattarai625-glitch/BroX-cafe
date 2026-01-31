@@ -1,0 +1,209 @@
+"use client";
+
+import Image from "next/image";
+import { useState } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CartSheet } from "@/components/cart-sheet";
+import { ServiceMenu } from "@/components/service-menu";
+import { ReviewForm } from "@/components/review-form";
+import { MENU_ITEMS, CATEGORIES } from "@/lib/data";
+import { Moon, Sun, ShoppingBag, UtensilsCrossed, Star, ChefHat } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+import { useCartStore } from "@/lib/store";
+import { motion } from "framer-motion";
+
+export default function Home() {
+  const { theme, setTheme } = useTheme();
+  const [activeCategory, setActiveCategory] = useState("all");
+  const { addItem, lang, setLang } = useCartStore();
+
+  const filteredItems = activeCategory === "all"
+    ? MENU_ITEMS
+    : MENU_ITEMS.filter(item => item.categoryId === activeCategory);
+
+  return (
+    <div className="min-h-screen pb-20 bg-background text-foreground transition-colors duration-300 font-sans selection:bg-orange-500/30">
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-gradient-to-tr from-orange-500 to-amber-500 p-2 rounded-xl shadow-lg shadow-orange-500/20">
+              <ChefHat className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent tracking-tight">
+              Cafe Delight
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLang(lang === 'en' ? 'np' : 'en')}
+              className="font-bold text-base w-10 h-10 rounded-full hover:bg-muted"
+            >
+              {lang === 'en' ? '🇳🇵' : '🇺🇸'}
+            </Button>
+            <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-muted" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-blue-400" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+            <CartSheet />
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative h-[50vh] sm:h-[60vh] w-full overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 z-10" />
+        <Image
+          src="/images/momo-buff.png"
+          alt="Hero Food"
+          fill
+          className="object-cover scale-105 animate-slow-zoom" // Add animate-slow-zoom in globals.css or remove
+          priority
+        />
+        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="px-4 py-1.5 rounded-full bg-orange-500/20 text-orange-200 text-sm font-medium border border-orange-500/30 backdrop-blur-md mb-4 inline-block">
+              {lang === 'en' ? 'Authentic Flavors' : 'अनिवार्य स्वाद'}
+            </span>
+            <h2 className="text-5xl sm:text-7xl font-black text-white drop-shadow-2xl tracking-tight leading-tight">
+              {lang === 'en' ? 'Taste of Nepal' : 'नेपालको स्वाद'}
+            </h2>
+            <p className="text-slate-100 text-xl sm:text-2xl font-light mt-4 max-w-2xl mx-auto leading-relaxed drop-shadow-lg opacity-90">
+              {lang === 'en' ? 'Experience the finest Momos, savory Noodles, and refreshing drinks in town.' : 'सहरकै उत्कृष्ट मोमो, चाउमिन र पेय पदार्थको अनुभव लिनुहोस्।'}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex gap-4 justify-center pt-4"
+          >
+            <Button size="lg" className="rounded-full px-8 bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-xl shadow-orange-900/20 text-lg h-12">
+              {lang === 'en' ? 'View Menu' : 'मेनु हेर्नुहोस्'}
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Categories */}
+      <nav className="sticky top-20 z-40 bg-background/80 backdrop-blur-lg border-b border-border/40 py-4 overflow-x-auto scroolbar-hide">
+        <div className="container mx-auto px-6 flex gap-3 min-w-max pb-2">
+          <Button
+            variant={activeCategory === "all" ? "default" : "secondary"}
+            onClick={() => setActiveCategory("all")}
+            className={cn(
+              "rounded-full px-6 transition-all duration-300",
+              activeCategory === "all" ? "bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-500/20" : "hover:bg-muted"
+            )}
+          >
+            {lang === 'en' ? 'All' : 'सबै'}
+          </Button>
+          {CATEGORIES.map(cat => (
+            <Button
+              key={cat.id}
+              variant={activeCategory === cat.id ? "default" : "secondary"}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "rounded-full px-6 transition-all duration-300",
+                activeCategory === cat.id ? "bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-500/20" : "hover:bg-muted"
+              )}
+            >
+              {lang === 'en' ? cat.nameEn : cat.nameNp}
+            </Button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Menu Grid */}
+      <main className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {filteredItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              viewport={{ once: true }}
+            >
+              <Card className="overflow-hidden group h-full border-0 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-card/50 backdrop-blur-sm dark:bg-card/40">
+                <div className="relative h-64 w-full overflow-hidden">
+                  <Image
+                    src={item.image}
+                    alt={item.nameEn}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                    Rs. {item.price}
+                  </div>
+                  {/* Decorative gradient overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+
+                <CardHeader className="p-5 pb-2">
+                  <CardTitle className="flex justify-between items-start text-xl font-bold tracking-tight">
+                    <span className="line-clamp-1" title={lang === 'en' ? item.nameEn : item.nameNp}>
+                      {lang === 'en' ? item.nameEn : item.nameNp}
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-primary font-medium flex items-center gap-1.5 text-base">
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    {lang === 'en' ? item.nameNp : item.nameEn}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="p-5 pt-2 flex-grow">
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    {item.description}
+                  </p>
+                </CardContent>
+
+                <CardFooter className="p-5 pt-0">
+                  <Button
+                    className="w-full font-semibold rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/30 transition-all h-11"
+                    onClick={() => addItem({
+                      id: item.id,
+                      name: lang === 'en' ? item.nameEn : item.nameNp,
+                      price: item.price
+                    })}
+                  >
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    {lang === 'en' ? 'Add to Order' : 'अर्डर गर्नुहोस्'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </main>
+
+      <section className="container mx-auto px-6 py-8 pb-32">
+        <div className="bg-muted/30 rounded-3xl p-8 md:p-12 border border-border/50">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-3xl font-bold mb-4">{lang === 'en' ? 'Tell us about your experience' : 'तपाईंको अनुभव बताउनुहोस्'}</h2>
+            <p className="text-muted-foreground">{lang === 'en' ? 'We value your feedback to serve you better.' : 'तपाईंको प्रतिक्रिया हाम्रो लागि महत्वपूर्ण छ।'}</p>
+          </div>
+          <ReviewForm />
+        </div>
+      </section>
+
+      {/* Floating Call Waiter Button */}
+      <div className="fixed bottom-8 right-8 z-50 animate-bounce-subtle">
+        <ServiceMenu />
+      </div>
+
+    </div>
+  );
+}

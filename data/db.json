@@ -1,0 +1,23 @@
+{
+  "orders": [
+    {
+      "id": "ord-1",
+      "tableNo": "5",
+      "items": [
+        {
+          "name": "Steam Buff Momo",
+          "qty": 2
+        },
+        {
+          "name": "Coke",
+          "qty": 2
+        }
+      ],
+      "total": 500,
+      "status": "PAID",
+      "time": "10:30 AM"
+    }
+  ],
+  "requests": [],
+  "reviews": []
+}
