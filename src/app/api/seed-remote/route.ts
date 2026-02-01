@@ -3,6 +3,10 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
     try {
+        // Clear existing data to prevent duplicates
+        await prisma.menuItem.deleteMany({})
+        await prisma.category.deleteMany({})
+
         // Categories
         const catMomo = await prisma.category.create({
             data: { nameEn: 'Momo', nameNp: 'मोमो' }
