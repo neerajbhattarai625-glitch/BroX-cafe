@@ -8,21 +8,56 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { CartSheet } from "@/components/cart-sheet";
 import { ServiceMenu } from "@/components/service-menu";
 import { ReviewForm } from "@/components/review-form";
-import { MENU_ITEMS, CATEGORIES } from "@/lib/data";
-import { Moon, Sun, ShoppingBag, UtensilsCrossed, Star, ChefHat } from "lucide-react";
-import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
-import { useCartStore } from "@/lib/store";
-import { motion } from "framer-motion";
+import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data"; // Fallback
+import { useEffect } from "react";
+
+// Types matching Prisma + Frontend needs
+interface Category {
+  id: string;
+  nameEn: string;
+  nameNp: string;
+}
+
+interface MenuItem {
+  id: string;
+  nameEn: string;
+  nameNp: string;
+  description: string | null;
+  price: number;
+  image: string | null;
+  categoryId: string;
+}
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [activeCategory, setActiveCategory] = useState("all");
   const { addItem, lang, setLang } = useCartStore();
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch live data
+    Promise.all([
+      fetch('/api/categories').then(res => res.ok ? res.json() : []),
+      fetch('/api/menu').then(res => res.ok ? res.json() : [])
+    ]).then(([cats, items]) => {
+      setCategories(cats.length > 0 ? cats : MOCK_CATS);
+      setMenuItems(items.length > 0 ? items : MOCK_ITEMS);
+      setLoading(false);
+    }).catch(err => {
+      console.error("Failed to load menu", err);
+      // Fallback to mock data if API fails
+      setCategories(MOCK_CATS);
+      setMenuItems(MOCK_ITEMS);
+      setLoading(false);
+    });
+  }, []);
+
   const filteredItems = activeCategory === "all"
-    ? MENU_ITEMS
-    : MENU_ITEMS.filter(item => item.categoryId === activeCategory);
+    ? menuItems
+    : menuItems.filter(item => item.categoryId === activeCategory);
 
   return (
     <div className="min-h-screen pb-20 bg-background text-foreground transition-colors duration-300 font-sans selection:bg-orange-500/30">
@@ -110,7 +145,7 @@ export default function Home() {
           >
             {lang === 'en' ? 'All' : 'सबै'}
           </Button>
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <Button
               key={cat.id}
               variant={activeCategory === cat.id ? "default" : "secondary"}
@@ -140,7 +175,7 @@ export default function Home() {
               <Card className="overflow-hidden group h-full border-0 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 bg-card/50 backdrop-blur-sm dark:bg-card/40">
                 <div className="relative h-64 w-full overflow-hidden">
                   <Image
-                    src={item.image}
+                    src={item.image || "/images/momo-buff.png"}
                     alt={item.nameEn}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
