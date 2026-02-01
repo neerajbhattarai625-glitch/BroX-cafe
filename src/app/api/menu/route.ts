@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
+import cloudinary from '@/lib/cloudinary';
 
 export async function GET() {
     try {
@@ -19,16 +18,25 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const file = formData.get('image') as File | null;
 
-        let imagePath = '/images/default-food.jpg'; // Default logic if no file or default needed
+        let imagePath = '/images/default-food.jpg';
 
         if (file && file.size > 0) {
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            // Create unique filename
-            const filename = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
-            const path = join(process.cwd(), 'public/uploads', filename);
-            await writeFile(path, buffer);
-            imagePath = `/uploads/${filename}`;
+
+            // Upload to Cloudinary using promise wrapper around upload_stream
+            const uploadResult: any = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    { folder: 'cafe-menu' },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(buffer);
+            });
+
+            imagePath = uploadResult.secure_url;
         }
 
         const nameEn = formData.get('nameEn') as string;
