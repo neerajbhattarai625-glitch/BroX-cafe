@@ -12,8 +12,17 @@ export function SalesSummary() {
 
     useEffect(() => {
         fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => setStats(data))
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch")
+                return res.json()
+            })
+            .then(data => {
+                if (data.daily && data.monthly) {
+                    setStats(data)
+                } else {
+                    console.error("Invalid stats data:", data)
+                }
+            })
             .catch(err => console.error(err))
     }, [])
 
