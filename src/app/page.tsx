@@ -204,6 +204,16 @@ export default function Home() {
         <ServiceMenu />
       </div>
 
+      {/* Footer */}
+      <footer className="bg-muted/50 py-8 border-t border-border/40 mt-12">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+          <p>&copy; 2024 Cafe Delight. All rights reserved.</p>
+          <a href="/login" className="hover:text-primary transition-colors hover:underline">
+            {lang === 'en' ? 'Staff Login' : 'कर्मचारी लगइन'}
+          </a>
+        </div>
+      </footer>
+
     </div>
   );
 }
