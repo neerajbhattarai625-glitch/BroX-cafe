@@ -1,0 +1,81 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+require('dotenv').config()
+const { PrismaClient } = require('@prisma/client')
+
+const prisma = new PrismaClient()
+
+async function main() {
+    console.log('Start seeding...')
+
+    // Categories
+    const catMomo = await prisma.category.create({
+        data: { nameEn: 'Momo', nameNp: 'मोमो' }
+    })
+    console.log('Created Momo category:', catMomo.id)
+
+    const catNoodles = await prisma.category.create({
+        data: { nameEn: 'Noodles', nameNp: 'चाउमिन/थुक्पा' }
+    })
+    console.log('Created Noodles category:', catNoodles.id)
+
+    const catDrinks = await prisma.category.create({
+        data: { nameEn: 'Drinks', nameNp: 'पेय पदार्थ' }
+    })
+    console.log('Created Drinks category:', catDrinks.id)
+
+    // Items
+    await prisma.menuItem.create({
+        data: {
+            nameEn: 'Steam Buff Momo',
+            nameNp: 'बफ मोमो (स्टिम)',
+            description: 'Juicy buff mince filled dumplings, served with spicy achar.',
+            price: 150,
+            categoryId: catMomo.id,
+            image: 'https://images.unsplash.com/photo-1626804475297-411dbcc8c4fb?w=800&q=80',
+        }
+    })
+
+    await prisma.menuItem.create({
+        data: {
+            nameEn: 'Veg Momo',
+            nameNp: 'भेज मोमो',
+            description: 'Fresh vegetable filling with special herbs.',
+            price: 120,
+            categoryId: catMomo.id,
+            image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&q=80',
+        }
+    })
+
+    await prisma.menuItem.create({
+        data: {
+            nameEn: 'Chicken Thukpa',
+            nameNp: 'चिकेन थुक्पा',
+            description: 'Hot noodle soup with chicken and veggies.',
+            price: 180,
+            categoryId: catNoodles.id,
+            image: 'https://images.unsplash.com/photo-1625167359766-1514a586b614?w=800&q=80',
+        }
+    })
+
+    await prisma.menuItem.create({
+        data: {
+            nameEn: 'Masala Tea',
+            nameNp: 'मसला चिया',
+            description: 'Authentic Nepali masala tea.',
+            price: 50,
+            categoryId: catDrinks.id,
+            image: 'https://images.unsplash.com/photo-1616164295171-881b8577f893?w=800&q=80',
+        }
+    })
+
+    console.log('Seeding completed.')
+}
+
+main()
+    .catch((e) => {
+        console.error(e)
+        // process.exit(1) // Don't exit hard, let's see output
+    })
+    .finally(async () => {
+        await prisma.$disconnect()
+    })
