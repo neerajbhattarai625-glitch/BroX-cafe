@@ -26,6 +26,7 @@ export async function GET() {
                 description: 'Juicy buff mince filled dumplings, served with spicy achar.',
                 price: 150,
                 categoryId: catMomo.id,
+                // Buff Momo
                 image: 'https://images.unsplash.com/photo-1626804475297-411dbcc8c4fb?w=800&q=80',
             }
         })
@@ -37,6 +38,7 @@ export async function GET() {
                 description: 'Fresh vegetable filling with special herbs.',
                 price: 120,
                 categoryId: catMomo.id,
+                // Veg Momo
                 image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&q=80',
             }
         })
@@ -48,6 +50,7 @@ export async function GET() {
                 description: 'Hot noodle soup with chicken and veggies.',
                 price: 180,
                 categoryId: catNoodles.id,
+                // Thukpa
                 image: 'https://images.unsplash.com/photo-1625167359766-1514a586b614?w=800&q=80',
             }
         })
@@ -59,7 +62,8 @@ export async function GET() {
                 description: 'Authentic Nepali masala tea.',
                 price: 50,
                 categoryId: catDrinks.id,
-                image: 'https://images.unsplash.com/photo-1616164295171-881b8577f893?w=800&q=80',
+                // Masala Tea
+                image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?w=800&q=80',
             }
         })
 
