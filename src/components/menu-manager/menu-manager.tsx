@@ -19,9 +19,22 @@ export function MenuManager() {
 
     useEffect(() => {
         fetch('/api/categories')
-            .then(res => res.json())
-            .then(data => setCategories(data))
-            .catch(err => console.error("Failed to load categories", err))
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to load categories")
+                return res.json()
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setCategories(data)
+                } else {
+                    console.error("Invalid categories data:", data)
+                    setCategories([])
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load categories", err)
+                setCategories([])
+            })
     }, [])
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
