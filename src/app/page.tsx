@@ -10,6 +10,11 @@ import { ServiceMenu } from "@/components/service-menu";
 import { ReviewForm } from "@/components/review-form";
 import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data"; // Fallback
 import { useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useCartStore } from "@/lib/store";
+import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 // Types matching Prisma + Frontend needs
 interface Category {
