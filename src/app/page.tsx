@@ -1,22 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CartSheet } from "@/components/cart-sheet";
 import { ServiceMenu } from "@/components/service-menu";
 import { ReviewForm } from "@/components/review-form";
-import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data"; // Fallback
-import { useEffect } from "react";
+import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data";
 import { useTheme } from "next-themes";
 import { useCartStore } from "@/lib/store";
-import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat } from "lucide-react";
+import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useSearchParams, useRouter } from "next/navigation";
 
-// Types matching Prisma + Frontend needs
 interface Category {
   id: string;
   nameEn: string;
@@ -34,13 +33,71 @@ interface MenuItem {
 }
 
 export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
   const { theme, setTheme } = useTheme();
   const [activeCategory, setActiveCategory] = useState("all");
-  const { addItem, lang, setLang } = useCartStore();
+  const { addItem, lang, setLang, tableNo, setTableNo } = useCartStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(true);
+
+  useEffect(() => {
+    // 1. Check for QR Code Params & Login
+    const tid = searchParams.get("tableId");
+    const tkn = searchParams.get("token");
+
+    const checkSession = async () => {
+      if (tid && tkn) {
+        // Attempt Login
+        try {
+          const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableId: tid, token: tkn })
+          });
+          if (res.ok) {
+            // Success, remove params from URL for clean look
+            router.replace('/');
+            // Verify to get table number
+            const vRes = await fetch('/api/login');
+            const vData = await vRes.json();
+            if (vData.table) setTableNo(vData.table.number);
+          } else {
+            alert("Invalid QR Code or Table Closed.");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        // 2. Check existing session
+        try {
+          const res = await fetch('/api/login');
+          const data = await res.json();
+          if (data.table) {
+            setTableNo(data.table.number);
+          } else {
+            setTableNo(null);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      setVerifying(false);
+    };
+
+    checkSession();
+  }, [searchParams, router, setTableNo]);
 
   useEffect(() => {
     // Fetch live data
@@ -66,6 +123,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pb-20 bg-background text-foreground transition-colors duration-300 font-sans selection:bg-orange-500/30">
+
+      {/* Session Overlay */}
+      {!tableNo && !verifying && (
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+          <div className="bg-card border shadow-xl p-8 rounded-2xl max-w-md w-full animate-in zoom-in-95">
+            <div className="bg-orange-100 dark:bg-orange-900/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <QrCode className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Welcome to Cafe Delight</h2>
+            <p className="text-muted-foreground mb-6">
+              To place an order, please scan the QR code located on your table.
+            </p>
+            <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+              <p>If you have already scanned and see this message, please ask our staff for assistance.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm supports-[backdrop-filter]:bg-background/60">
@@ -104,7 +179,7 @@ export default function Home() {
           src="/images/momo-buff.png"
           alt="Hero Food"
           fill
-          className="object-cover scale-105 animate-slow-zoom" // Add animate-slow-zoom in globals.css or remove
+          className="object-cover scale-105 animate-slow-zoom"
           priority
         />
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto space-y-6">
@@ -188,7 +263,6 @@ export default function Home() {
                   <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
                     Rs. {item.price}
                   </div>
-                  {/* Decorative gradient overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
