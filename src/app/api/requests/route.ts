@@ -39,3 +39,39 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to create request' }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request) {
+    try {
+        const body = await request.json();
+
+        // Handle Table Status Update
+        if (body.tableId && body.status) {
+            const { tableId, status } = body;
+            // If opening, generate new session ID
+            const updateData: any = { status };
+            if (status === 'OPEN') {
+                updateData.currentSessionId = crypto.randomUUID();
+            }
+
+            const updatedTable = await prisma.table.update({
+                where: { id: tableId },
+                data: updateData
+            });
+
+            return NextResponse.json(updatedTable);
+        }
+
+        // Handle Request Status Update (optional, existing logic fallback)
+        if (body.id && body.status) {
+            const updatedReq = await prisma.serviceRequest.update({
+                where: { id: body.id },
+                data: { status: body.status }
+            });
+            return NextResponse.json(updatedReq);
+        }
+
+        return NextResponse.json({ error: "Invalid" }, { status: 400 });
+    } catch (e) {
+        return NextResponse.json({ error: "Failed" }, { status: 500 });
+    }
+}

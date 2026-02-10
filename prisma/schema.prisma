@@ -52,3 +52,20 @@ model MenuItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      String   @default("STAFF") // ADMIN, STAFF
+  createdAt DateTime @default(now())
+}
+
+model Table {
+  id               String   @id @default(uuid())
+  number           String   @unique
+  status           String   @default("CLOSED") // OPEN, CLOSED
+  currentSessionId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
