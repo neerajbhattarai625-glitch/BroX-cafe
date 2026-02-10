@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Trash2, QrCode } from "lucide-react"
+import { Plus, Trash2, QrCode, Power } from "lucide-react"
 import QRCode from "qrcode"
 
 interface Table {
@@ -45,6 +45,16 @@ export function TableManager() {
     const deleteTable = async (id: string) => {
         if (!confirm("Are you sure? This will delete the table.")) return
         await fetch(`/api/tables?id=${id}`, { method: 'DELETE' })
+        fetchTables()
+    }
+
+    const toggleStatus = async (table: Table) => {
+        const newStatus = table.status === 'OPEN' ? 'CLOSED' : 'OPEN'
+        await fetch('/api/tables', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: table.id, status: newStatus })
+        })
         fetchTables()
     }
 
@@ -111,6 +121,15 @@ export function TableManager() {
                                     <Button onClick={() => window.print()} className="w-full">Print QR</Button>
                                 </DialogContent>
                             </Dialog>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={table.status === 'OPEN' ? "text-green-600" : "text-gray-400"}
+                                onClick={() => toggleStatus(table)}
+                                title={table.status === 'OPEN' ? "Close Table" : "Open Table"}
+                            >
+                                <Power className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTable(table.id)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>

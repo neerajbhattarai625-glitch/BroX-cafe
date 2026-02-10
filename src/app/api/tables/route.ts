@@ -34,6 +34,26 @@ export async function POST(request: Request) {
     }
 }
 
+export async function PUT(request: Request) {
+    try {
+        const body = await request.json();
+        const { id, status } = body;
+
+        if (!id || !status) {
+            return NextResponse.json({ error: "ID and status are required" }, { status: 400 });
+        }
+
+        const updatedTable = await prisma.table.update({
+            where: { id },
+            data: { status }
+        });
+
+        return NextResponse.json(updatedTable);
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to update table" }, { status: 500 });
+    }
+}
+
 export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
