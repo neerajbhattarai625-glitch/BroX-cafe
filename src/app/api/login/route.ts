@@ -2,50 +2,20 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("table_session");
-    const authCookie = cookieStore.get("auth_token");
-
-    let table = null;
-    let user = null;
-
-    if (sessionCookie) {
-        try {
-            const session = JSON.parse(sessionCookie.value);
-            const dbTable = await prisma.table.findUnique({
-                where: { id: session.tableId }
-            });
-            // Validate session
-            if (dbTable && dbTable.status === 'OPEN') {
-                // Optionally check sessionId if we enforce rotation
-                table = dbTable;
-            }
-        } catch (e) {
-            console.error("Session parse error", e);
-        }
-    }
-
-    if (authCookie) {
-        // Simple mock check or DB check
-        if (authCookie.value === "admin_token") user = { role: "ADMIN", username: "admin" };
-        else if (authCookie.value === "staff_token") user = { role: "STAFF", username: "staff" };
-        else {
-            // Try to find user by ID if we stored ID
-            const dbUser = await prisma.user.findUnique({ where: { id: authCookie.value } });
-            if (dbUser) user = dbUser;
-        }
-    }
-
-    return NextResponse.json({ table, user });
+    // ...
 }
 
 export async function POST(request: Request) {
     const body = await request.json();
+    console.log("[LOGIN API] Received body:", body);
 
     // 1. Table Login (QR Code Scan)
-    // 1. Table Login (QR Code Scan)
     if (body.tableId) {
+        console.log("[LOGIN API] Processing Table Login for:", body.tableId);
         const { tableId } = body;
 
         // A. Device Lock Check
