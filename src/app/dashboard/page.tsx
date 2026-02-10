@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, TrendingUp } from "lucide-react"
+import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, TrendingUp, QrCode } from "lucide-react"
 
 
 
@@ -41,11 +41,13 @@ const MOCK_ORDERS: Order[] = [
 import type { ServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
 import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
+import { TableManager } from "@/components/table-manager"
 
 export default function Dashboard() {
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
+    const [user, setUser] = useState<{ role: string } | null>(null)
     const router = useRouter()
 
     const handleLogout = async () => {
@@ -55,15 +57,20 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const [orderRes, reqRes, revRes] = await Promise.all([
+            const [orderRes, reqRes, revRes, userRes] = await Promise.all([
                 fetch('/api/orders'),
                 fetch('/api/requests'),
-                fetch('/api/reviews')
+                fetch('/api/reviews'),
+                fetch('/api/login')
             ])
 
             if (orderRes.ok) setOrders(await orderRes.json())
             if (reqRes.ok) setRequests(await reqRes.json())
             if (revRes.ok) setReviews(await revRes.json())
+            if (userRes.ok) {
+                const userData = await userRes.json()
+                if (userData.user) setUser(userData.user)
+            }
         } catch (error) {
             console.error("Failed to fetch data", error)
         }
@@ -117,6 +124,7 @@ export default function Dashboard() {
                     <TabsTrigger value="reviews">Reviews</TabsTrigger>
                     <TabsTrigger value="menu">Menu</TabsTrigger>
                     <TabsTrigger value="stats">Sales</TabsTrigger>
+                    {user?.role === 'ADMIN' && <TabsTrigger value="tables">Tables</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="orders">
@@ -211,6 +219,12 @@ export default function Dashboard() {
                 <TabsContent value="stats">
                     <div className="mt-4">
                         <SalesSummary />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="tables">
+                    <div className="mt-4">
+                        <TableManager />
                     </div>
                 </TabsContent>
             </Tabs>
