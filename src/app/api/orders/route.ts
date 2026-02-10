@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export async function GET() {
     try {
@@ -25,10 +26,34 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { tableNo, items, total } = body;
 
+        // 1. Verify Session
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get("table_session");
+
+        if (!sessionCookie) {
+            return NextResponse.json({ error: "No active session" }, { status: 401 });
+        }
+
+        let session;
+        try {
+            session = JSON.parse(sessionCookie.value);
+        } catch (e) {
+            return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+        }
+
+        // 2. Validate against DB
+        const table = await prisma.table.findUnique({
+            where: { id: session.tableId }
+        });
+
+        if (!table || table.status !== 'OPEN' || table.currentSessionId !== session.sessionId) {
+            return NextResponse.json({ error: "Session expired or invalid" }, { status: 403 });
+        }
+
         const newOrder = await prisma.order.create({
             data: {
                 tableNo,
-                items: JSON.stringify(items), // Store as JSON string
+                items: JSON.stringify(items),
                 total,
                 status: 'PENDING'
             }
