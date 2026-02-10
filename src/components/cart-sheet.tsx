@@ -19,20 +19,21 @@ import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
 import { useCartStore } from "@/lib/store"
 
 export function CartSheet() {
-    const { items, removeItem, increaseQuantity, decreaseQuantity, total, clearCart, addOrderId } = useCartStore()
+    const { items, removeItem, increaseQuantity, decreaseQuantity, total, clearCart, addOrderId, tableNo } = useCartStore()
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
 
     const handlePlaceOrder = async () => {
+        if (!tableNo) return
+
         setIsSubmitting(true)
-        const tableNo = (document.getElementById('table') as HTMLInputElement)?.value || "5"
 
         try {
             const res = await fetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tableNo,
+                    tableNo, // Use validated table number
                     items: items.map(i => ({ name: i.name, qty: i.quantity })),
                     total: Math.round(total() * 1.1 * 1.13)
                 })
@@ -117,15 +118,22 @@ export function CartSheet() {
                 </div>
                 <SheetFooter>
                     <div className="w-full flex flex-col gap-2">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="table" className="text-right">
-                                Table
-                            </Label>
-                            <Input id="table" defaultValue="5" className="col-span-3" />
+                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg border">
+                            <span className="text-sm font-medium">Table Number</span>
+                            <span className="font-bold flex items-center gap-2">
+                                {tableNo ? (
+                                    <>
+                                        {tableNo}
+                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                    </>
+                                ) : (
+                                    <span className="text-destructive text-xs">Not Verified</span>
+                                )}
+                            </span>
                         </div>
                         <SheetClose asChild>
-                            <Button type="submit" className="w-full mt-2" disabled={items.length === 0 || isSubmitting} onClick={handlePlaceOrder}>
-                                {isSubmitting ? "Placing Order..." : "Place Order"}
+                            <Button type="submit" className="w-full mt-2" disabled={items.length === 0 || isSubmitting || !tableNo} onClick={handlePlaceOrder}>
+                                {isSubmitting ? "Placing Order..." : (tableNo ? "Place Order" : "Scan QR to Order")}
                             </Button>
                         </SheetClose>
                     </div>
