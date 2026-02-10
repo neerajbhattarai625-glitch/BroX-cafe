@@ -17,7 +17,7 @@ interface Table {
     currentSessionId?: string
 }
 
-export function TableManager() {
+export function TableManager({ userRole }: { userRole?: string }) {
     const [tables, setTables] = useState<Table[]>([])
     const [newTableNo, setNewTableNo] = useState("")
     const [qrUrl, setQrUrl] = useState<string | null>(null)
@@ -74,17 +74,19 @@ export function TableManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex gap-4 items-end">
-                <div className="grid gap-2">
-                    <Label>New Table Number</Label>
-                    <Input
-                        value={newTableNo}
-                        onChange={(e) => setNewTableNo(e.target.value)}
-                        placeholder="e.g. 10"
-                    />
+            {userRole === 'ADMIN' && (
+                <div className="flex gap-4 items-end">
+                    <div className="grid gap-2">
+                        <Label>New Table Number</Label>
+                        <Input
+                            value={newTableNo}
+                            onChange={(e) => setNewTableNo(e.target.value)}
+                            placeholder="e.g. 10"
+                        />
+                    </div>
+                    <Button onClick={addTable}><Plus className="mr-2 h-4 w-4" /> Add Table</Button>
                 </div>
-                <Button onClick={addTable}><Plus className="mr-2 h-4 w-4" /> Add Table</Button>
-            </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {tables.map(table => (
@@ -98,27 +100,29 @@ export function TableManager() {
                             </span>
                         </CardContent>
                         <CardFooter className="flex justify-between pt-0">
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="icon" onClick={() => generateQR(table)} title="Show QR">
-                                        <QrCode className="h-4 w-4" />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Table {selectedTable?.number} QR Code</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg">
-                                        {qrUrl && (
-                                            <img src={qrUrl} alt="Table QR Code" className="w-64 h-64" />
-                                        )}
-                                        <p className="mt-4 text-center text-sm text-muted-foreground break-all px-8">
-                                            Scan to order
-                                        </p>
-                                    </div>
-                                    <Button onClick={() => window.print()} className="w-full">Print QR</Button>
-                                </DialogContent>
-                            </Dialog>
+                            {userRole === 'ADMIN' && (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon" onClick={() => generateQR(table)} title="Show QR">
+                                            <QrCode className="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Table {selectedTable?.number} QR Code</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg">
+                                            {qrUrl && (
+                                                <img src={qrUrl} alt="Table QR Code" className="w-64 h-64" />
+                                            )}
+                                            <p className="mt-4 text-center text-sm text-muted-foreground break-all px-8">
+                                                Scan to order
+                                            </p>
+                                        </div>
+                                        <Button onClick={() => window.print()} className="w-full">Print QR</Button>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -128,9 +132,11 @@ export function TableManager() {
                             >
                                 <Power className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTable(table.id)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {userRole === 'ADMIN' && (
+                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTable(table.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
                         </CardFooter>
                     </Card>
                 ))}

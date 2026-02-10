@@ -129,10 +129,14 @@ export default function Dashboard() {
                     <TabsList>
                         <TabsTrigger value="orders">Orders</TabsTrigger>
                         <TabsTrigger value="requests">Requests</TabsTrigger>
-                        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                        <TabsTrigger value="menu">Menu</TabsTrigger>
-                        <TabsTrigger value="stats">Sales</TabsTrigger>
-                        {user?.role === 'ADMIN' && <TabsTrigger value="tables">Tables</TabsTrigger>}
+                        {user?.role === 'ADMIN' && (
+                            <>
+                                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                                <TabsTrigger value="menu">Menu</TabsTrigger>
+                                <TabsTrigger value="stats">Sales</TabsTrigger>
+                            </>
+                        )}
+                        <TabsTrigger value="tables">Tables</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="orders">
@@ -232,7 +236,7 @@ export default function Dashboard() {
 
                     <TabsContent value="tables">
                         <div className="mt-4">
-                            <TableManager />
+                            <TableManager userRole={user?.role} />
                         </div>
                     </TabsContent>
                 </Tabs>
