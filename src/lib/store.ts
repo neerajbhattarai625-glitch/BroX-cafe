@@ -22,6 +22,8 @@ type CartStore = {
     setLang: (lang: 'en' | 'np') => void
     myOrderIds: string[]
     addOrderId: (id: string) => void
+    tableNo: string | null
+    setTableNo: (no: string | null) => void
 }
 
 export const useCartStore = create<CartStore>()(
@@ -31,8 +33,10 @@ export const useCartStore = create<CartStore>()(
             userId: null,
             lang: 'en',
             myOrderIds: [],
+            tableNo: null,
             setLang: (lang) => set({ lang }),
             setUserId: (id) => set({ userId: id }),
+            setTableNo: (no) => set({ tableNo: no }),
             addOrderId: (id) => set((state) => ({ myOrderIds: [...state.myOrderIds, id] })),
             addItem: (item) => set((state) => {
                 const existing = state.items.find((i) => i.id === item.id)
