@@ -48,6 +48,7 @@ export default function Dashboard() {
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
     const [user, setUser] = useState<{ role: string } | null>(null)
+    const [loading, setLoading] = useState(true)
     const router = useRouter()
 
     const handleLogout = async () => {
@@ -73,6 +74,8 @@ export default function Dashboard() {
             }
         } catch (error) {
             console.error("Failed to fetch data", error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -117,117 +120,123 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <Tabs defaultValue="orders" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="orders">Orders</TabsTrigger>
-                    <TabsTrigger value="requests">Requests</TabsTrigger>
-                    <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                    <TabsTrigger value="menu">Menu</TabsTrigger>
-                    <TabsTrigger value="stats">Sales</TabsTrigger>
-                    {user?.role === 'ADMIN' && <TabsTrigger value="tables">Tables</TabsTrigger>}
-                </TabsList>
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            ) : (
+                <Tabs defaultValue="orders" className="w-full">
+                    <TabsList>
+                        <TabsTrigger value="orders">Orders</TabsTrigger>
+                        <TabsTrigger value="requests">Requests</TabsTrigger>
+                        <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                        <TabsTrigger value="menu">Menu</TabsTrigger>
+                        <TabsTrigger value="stats">Sales</TabsTrigger>
+                        {user?.role === 'ADMIN' && <TabsTrigger value="tables">Tables</TabsTrigger>}
+                    </TabsList>
 
-                <TabsContent value="orders">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                        {/* Pending Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
-                                </h2>
-                                <Badge variant="secondary">{pendingOrders.length}</Badge>
+                    <TabsContent value="orders">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                            {/* Pending Column */}
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
+                                    </h2>
+                                    <Badge variant="secondary">{pendingOrders.length}</Badge>
+                                </div>
+                                {pendingOrders.map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+                                ))}
                             </div>
-                            {pendingOrders.map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+
+                            {/* Preparing Column */}
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <ChefHat className="h-5 w-5 text-blue-500" /> Preparing
+                                    </h2>
+                                    <Badge variant="secondary">{preparingOrders.length}</Badge>
+                                </div>
+                                {preparingOrders.map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+                                ))}
+                            </div>
+
+                            {/* Completed/Served Column */}
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <CheckCircle2 className="h-5 w-5 text-green-500" /> Served
+                                    </h2>
+                                    <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
+                                </div>
+                                {orders.filter(o => o.status === "SERVED").map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+                                ))}
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="requests">
+                        <div className="grid gap-4 mt-4">
+                            {requests.length === 0 && <p>No active requests</p>}
+                            {requests.map(req => (
+                                <Card key={req.id}>
+                                    <CardHeader>
+                                        <CardTitle>Table {req.tableNo}</CardTitle>
+                                        <CardDescription>{req.time}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-lg py-1 px-3">
+                                            {req.type.replace('_', ' ')}
+                                        </Badge>
+                                    </CardContent>
+                                </Card>
                             ))}
                         </div>
+                    </TabsContent>
 
-                        {/* Preparing Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <ChefHat className="h-5 w-5 text-blue-500" /> Preparing
-                                </h2>
-                                <Badge variant="secondary">{preparingOrders.length}</Badge>
-                            </div>
-                            {preparingOrders.map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+                    <TabsContent value="reviews">
+                        <div className="grid gap-4 mt-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {reviews.map(rev => (
+                                <Card key={rev.id}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            {rev.name}
+                                            <span className="text-orange-400 flex text-sm">
+                                                {Array.from({ length: rev.rating }).map((_, i) => <span key={i}>★</span>)}
+                                            </span>
+                                        </CardTitle>
+                                        <CardDescription>{rev.time}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p>{rev.comment}</p>
+                                    </CardContent>
+                                </Card>
                             ))}
                         </div>
+                    </TabsContent>
 
-                        {/* Completed/Served Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served
-                                </h2>
-                                <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
-                            </div>
-                            {orders.filter(o => o.status === "SERVED").map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
-                            ))}
+                    <TabsContent value="menu">
+                        <div className="mt-4 max-w-2xl">
+                            <MenuManager />
                         </div>
-                    </div>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="requests">
-                    <div className="grid gap-4 mt-4">
-                        {requests.length === 0 && <p>No active requests</p>}
-                        {requests.map(req => (
-                            <Card key={req.id}>
-                                <CardHeader>
-                                    <CardTitle>Table {req.tableNo}</CardTitle>
-                                    <CardDescription>{req.time}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-lg py-1 px-3">
-                                        {req.type.replace('_', ' ')}
-                                    </Badge>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
+                    <TabsContent value="stats">
+                        <div className="mt-4">
+                            <SalesSummary />
+                        </div>
+                    </TabsContent>
 
-                <TabsContent value="reviews">
-                    <div className="grid gap-4 mt-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {reviews.map(rev => (
-                            <Card key={rev.id}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        {rev.name}
-                                        <span className="text-orange-400 flex text-sm">
-                                            {Array.from({ length: rev.rating }).map((_, i) => <span key={i}>★</span>)}
-                                        </span>
-                                    </CardTitle>
-                                    <CardDescription>{rev.time}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <p>{rev.comment}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="menu">
-                    <div className="mt-4 max-w-2xl">
-                        <MenuManager />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="stats">
-                    <div className="mt-4">
-                        <SalesSummary />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="tables">
-                    <div className="mt-4">
-                        <TableManager />
-                    </div>
-                </TabsContent>
-            </Tabs>
+                    <TabsContent value="tables">
+                        <div className="mt-4">
+                            <TableManager />
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            )}
         </div>
     )
 }
