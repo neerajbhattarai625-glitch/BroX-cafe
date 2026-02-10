@@ -59,13 +59,13 @@ function HomeContent() {
     const tkn = searchParams.get("token");
 
     const checkSession = async () => {
-      if (tid && tkn) {
-        // Attempt Login
+      if (tid) {
+        // Attempt Login / Auto-Open
         try {
           const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableId: tid, token: tkn })
+            body: JSON.stringify({ tableId: tid }) // No token needed for initial static scan
           });
           if (res.ok) {
             // Success, remove params from URL for clean look
