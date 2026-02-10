@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { tableNo, items, total } = body;
+        const { tableNo, items, total, paymentMethod } = body;
 
         // 1. Verify Session
         const cookieStore = await cookies();
@@ -55,7 +55,9 @@ export async function POST(request: Request) {
                 tableNo,
                 items: JSON.stringify(items),
                 total,
-                status: 'PENDING'
+                status: 'PENDING',
+                paymentMethod: paymentMethod || 'CASH',
+                paymentStatus: 'PENDING' // Always start as pending, confirmed by counter or webhook
             }
         });
 
@@ -72,11 +74,15 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, status } = body;
+        const { id, status, paymentStatus } = body;
+
+        const dataToUpdate: any = {};
+        if (status) dataToUpdate.status = status;
+        if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
 
         const updatedOrder = await prisma.order.update({
             where: { id },
-            data: { status }
+            data: dataToUpdate
         });
 
         return NextResponse.json({

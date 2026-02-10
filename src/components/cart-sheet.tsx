@@ -22,27 +22,37 @@ export function CartSheet() {
     const { items, removeItem, increaseQuantity, decreaseQuantity, total, clearCart, addOrderId, tableNo } = useCartStore()
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const [paymentMethod, setPaymentMethod] = React.useState<'CASH' | 'ONLINE'>('CASH')
+    const [onlineProvider, setOnlineProvider] = React.useState<string>('ESEWA')
 
     const handlePlaceOrder = async () => {
         if (!tableNo) return
 
         setIsSubmitting(true)
 
+        // Mock Online Payment Delay
+        if (paymentMethod === 'ONLINE') {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
         try {
             const res = await fetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tableNo, // Use validated table number
+                    tableNo,
                     items: items.map(i => ({ name: i.name, qty: i.quantity })),
-                    total: Math.round(total() * 1.1 * 1.13)
+                    total: Math.round(total() * 1.1 * 1.13),
+                    paymentMethod: paymentMethod === 'ONLINE' ? onlineProvider : 'CASH'
                 })
             })
 
             if (res.ok) {
                 const data = await res.json()
-                addOrderId(data.id) // Track this order
+                addOrderId(data.id)
                 clearCart()
+                // Reset defaults
+                setPaymentMethod('CASH')
             }
         } catch (error) {
             console.error("Failed to place order", error)
@@ -118,25 +128,69 @@ export function CartSheet() {
                 </div>
                 <SheetFooter>
                     <div className="w-full flex flex-col gap-2">
-                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg border">
-                            <span className="text-sm font-medium">Table Number</span>
-                            <span className="font-bold flex items-center gap-2">
-                                {tableNo ? (
-                                    <>
-                                        {tableNo}
-                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                    </>
-                                ) : (
-                                    <span className="text-destructive text-xs">Not Verified</span>
-                                )}
-                            </span>
-                        </div>
-                        <SheetClose asChild>
-                            <Button type="submit" className="w-full mt-2" disabled={items.length === 0 || isSubmitting || !tableNo} onClick={handlePlaceOrder}>
-                                {isSubmitting ? "Placing Order..." : (tableNo ? "Place Order" : "Scan QR to Order")}
-                            </Button>
-                        </SheetClose>
+                        <span className="font-bold flex items-center gap-2">
+                            {tableNo ? (
+                                <>
+                                    {tableNo}
+                                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                </>
+                            ) : (
+                                <span className="text-destructive text-xs">Not Verified</span>
+                            )}
+                        </span>
                     </div>
+
+                    <div className="space-y-2 mt-2">
+                        <Label>Payment Method</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant={paymentMethod === 'CASH' ? 'default' : 'outline'}
+                                onClick={() => setPaymentMethod('CASH')}
+                                className="w-full"
+                            >
+                                Cash
+                            </Button>
+                            <Button
+                                variant={paymentMethod === 'ONLINE' ? 'default' : 'outline'}
+                                onClick={() => setPaymentMethod('ONLINE')}
+                                className="w-full"
+                            >
+                                Online
+                            </Button>
+                        </div>
+                    </div>
+
+                    {paymentMethod === 'ONLINE' && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            <Label>Select Wallet</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['ESEWA', 'KHALTI', 'FONEPAY'].map((provider) => (
+                                    <Button
+                                        key={provider}
+                                        variant={onlineProvider === provider ? 'default' : 'ghost'}
+                                        size="sm"
+                                        className="border"
+                                        onClick={() => setOnlineProvider(provider)}
+                                    >
+                                        {provider}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <SheetClose asChild>
+                        <Button
+                            type="submit"
+                            className="w-full mt-4 bg-green-600 hover:bg-green-700"
+                            disabled={items.length === 0 || isSubmitting || !tableNo}
+                            onClick={handlePlaceOrder}
+                        >
+                            {isSubmitting ? "Processing..." : (
+                                paymentMethod === 'CASH' ? "Place Order (Pay Cash)" : `Pay via ${onlineProvider}`
+                            )}
+                        </Button>
+                    </SheetClose>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

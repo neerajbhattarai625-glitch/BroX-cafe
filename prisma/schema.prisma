@@ -10,10 +10,13 @@ datasource db {
 model Order {
   id        String   @id @default(uuid())
   tableNo   String
-  items     String
-  total     Float
-  status    String
-  createdAt DateTime @default(now())
+  items         String
+  total         Float
+  status        String
+  paymentMethod String?  @default("CASH") // CASH, ONLINE
+  paymentStatus String   @default("PENDING") // PENDING, PAID, FAILED
+  transactionId String?
+  createdAt     DateTime @default(now())
 }
 
 model ServiceRequest {
@@ -57,7 +60,7 @@ model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
-  role      String   @default("STAFF") // ADMIN, STAFF
+  role      String   @default("STAFF") // ADMIN, STAFF, COUNTER
   createdAt DateTime @default(now())
 }
 

@@ -25,7 +25,8 @@ export async function GET(request: Request) {
             _count: { id: true },
             where: {
                 createdAt: { gte: startOfDay, lt: endOfDay },
-                status: { not: "CANCELLED" }
+                status: { not: "CANCELLED" },
+                paymentStatus: "PAID"
             }
         })
 
@@ -34,7 +35,8 @@ export async function GET(request: Request) {
             _count: { id: true },
             where: {
                 createdAt: { gte: startOfMonth, lt: endOfMonth },
-                status: { not: "CANCELLED" }
+                status: { not: "CANCELLED" },
+                paymentStatus: "PAID"
             }
         })
 

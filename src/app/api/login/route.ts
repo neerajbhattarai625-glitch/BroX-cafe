@@ -98,6 +98,11 @@ export async function POST(request: Request) {
         response.cookies.set("auth_token", "staff_token", { httpOnly: true, path: "/" });
         return response;
     }
+    if (username === "counter" && password === "counter123") {
+        const response = NextResponse.json({ success: true, role: "COUNTER" });
+        response.cookies.set("auth_token", "counter_token", { httpOnly: true, path: "/" });
+        return response;
+    }
 
     // DB Check
     const user = await prisma.user.findUnique({ where: { username } });
