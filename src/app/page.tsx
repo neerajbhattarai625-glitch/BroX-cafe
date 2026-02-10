@@ -53,6 +53,8 @@ function HomeContent() {
   const [verifying, setVerifying] = useState(true);
   const [user, setUser] = useState<{ role: string } | null>(null);
 
+  const [blocked, setBlocked] = useState<string | null>(null);
+
   useEffect(() => {
     // 1. Check for QR Code Params & Login
     const tid = searchParams.get("tableId");
@@ -75,10 +77,12 @@ function HomeContent() {
             const vData = await vRes.json();
             if (vData.table) setTableNo(vData.table.number);
           } else {
-            alert("Invalid QR Code or Table Closed.");
+            const err = await res.json();
+            setBlocked(err.message || "Invalid QR Code or Table Closed.");
           }
         } catch (e) {
           console.error(e);
+          setBlocked("Connection Error. Please try again.");
         }
       } else {
         // 2. Check existing session
@@ -128,8 +132,24 @@ function HomeContent() {
   return (
     <div className="min-h-screen pb-20 bg-background text-foreground transition-colors duration-300 font-sans selection:bg-orange-500/30">
 
+      {/* Blocked Overlay */}
+      {blocked && (
+        <div className="fixed inset-0 z-[200] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+          <div className="bg-destructive/10 p-6 rounded-full mb-6">
+            <Lock className="w-12 h-12 text-destructive" />
+          </div>
+          <h2 className="text-3xl font-bold mb-3 text-destructive">Access Denied</h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-md leading-relaxed">
+            {blocked}
+          </p>
+          <Button onClick={() => window.location.href = '/'} variant="outline" className="min-w-[140px]">
+            Refresh Page
+          </Button>
+        </div>
+      )}
+
       {/* Session Overlay */}
-      {!tableNo && !verifying && (
+      {!tableNo && !verifying && !blocked && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
           <div className="bg-card border shadow-xl p-8 rounded-2xl max-w-md w-full animate-in zoom-in-95">
             <div className="bg-orange-100 dark:bg-orange-900/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
