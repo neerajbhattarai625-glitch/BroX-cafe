@@ -54,29 +54,43 @@ function HomeContent() {
   const [user, setUser] = useState<{ role: string } | null>(null);
 
   const [blocked, setBlocked] = useState<string | null>(null);
+  const initialized = useState({ current: false })[0]; // Using state object as ref for strict mode stability
 
   useEffect(() => {
     // 1. Check for QR Code Params & Login
     const tid = searchParams.get("tableId");
-    const tkn = searchParams.get("token");
 
     const checkSession = async () => {
+      if (initialized.current) return;
+      initialized.current = true;
+
       if (tid) {
         // Attempt Login / Auto-Open
         try {
           const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableId: tid }) // No token needed for initial static scan
+            body: JSON.stringify({ tableId: tid })
           });
+
           if (res.ok) {
-            // Success, remove params from URL for clean look
             router.replace('/');
-            // Verify to get table number
             const vRes = await fetch('/api/login');
             const vData = await vRes.json();
             if (vData.table) setTableNo(vData.table.number);
           } else {
+            // Fallback: Check if we are ALREADY logged in to this table despite the error
+            // (Handles race conditions or double-firing in edge cases)
+            const verifyRes = await fetch('/api/login');
+            const verifyData = await verifyRes.json();
+
+            // If we have a session AND it matches the table we're trying to scan
+            if (verifyData.table && verifyData.table.id === tid) {
+              router.replace('/');
+              setTableNo(verifyData.table.number);
+              return; // Proceed as success
+            }
+
             const err = await res.json();
             setBlocked(err.message || "Invalid QR Code or Table Closed.");
           }
@@ -105,7 +119,7 @@ function HomeContent() {
     };
 
     checkSession();
-  }, [searchParams, router, setTableNo]);
+  }, [searchParams, router, setTableNo, initialized]);
 
   useEffect(() => {
     // Fetch live data
