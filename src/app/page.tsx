@@ -11,7 +11,7 @@ import { ReviewForm } from "@/components/review-form";
 import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data";
 import { useTheme } from "next-themes";
 import { useCartStore } from "@/lib/store";
-import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat, QrCode } from "lucide-react";
+import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat, QrCode, Lock, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -51,6 +51,7 @@ function HomeContent() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(true);
+  const [user, setUser] = useState<{ role: string } | null>(null);
 
   useEffect(() => {
     // 1. Check for QR Code Params & Login
@@ -88,6 +89,9 @@ function HomeContent() {
             setTableNo(data.table.number);
           } else {
             setTableNo(null);
+          }
+          if (data.user) {
+            setUser(data.user);
           }
         } catch (e) {
           console.error(e);
@@ -167,6 +171,15 @@ function HomeContent() {
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-blue-400" />
               <span className="sr-only">Toggle theme</span>
             </Button>
+            {user ? (
+              <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-muted" onClick={() => router.push('/dashboard')}>
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-muted" onClick={() => router.push('/login')}>
+                <Lock className="h-5 w-5 text-muted-foreground" />
+              </Button>
+            )}
             <CartSheet />
           </div>
         </div>

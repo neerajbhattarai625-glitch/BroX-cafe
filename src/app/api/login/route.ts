@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({ where: { username } });
     if (user && user.password === password) {
         const response = NextResponse.json({ success: true, role: user.role });
-        response.cookies.set("auth_token", user.id, { httpOnly: true, path: "/" });
+        response.cookies.set("auth_token", user.id, { httpOnly: true, secure: process.env.NODE_ENV === "production", path: "/" });
         return response;
     }
 
