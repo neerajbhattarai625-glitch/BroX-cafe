@@ -20,22 +20,7 @@ export async function POST(request: Request) {
 
         // A. Device Lock Check
         const cookieStore = await cookies();
-        const existingSession = cookieStore.get("table_session");
-
-        if (existingSession) {
-            try {
-                const session = JSON.parse(existingSession.value);
-                // If user is already active at ANOTHER table, block them.
-                if (session.tableId !== tableId) {
-                    return NextResponse.json({
-                        error: "Active Session Detected",
-                        message: "You are already seated at another table. Please checkout first."
-                    }, { status: 400 });
-                }
-            } catch (e) {
-                // Invalid cookie, ignore
-            }
-        }
+        // Removed blocking check for active session - allow overwriting.
 
         const table = await prisma.table.findUnique({
             where: { id: tableId }

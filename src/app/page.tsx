@@ -65,38 +65,46 @@ function HomeContent() {
       initialized.current = true;
 
       if (tid) {
-        // Attempt Login / Auto-Open
-        try {
-          const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableId: tid })
-          });
+        // Attempt Login / Auto-Open with Retry (Max 1 retry = 2 attempts total)
+        let loginSuccess = false;
 
-          if (res.ok) {
-            router.replace('/');
-            const vRes = await fetch('/api/login');
-            const vData = await vRes.json();
-            if (vData.table) setTableNo(vData.table.number);
-          } else {
-            // Fallback: Check if we are ALREADY logged in to this table despite the error
-            // (Handles race conditions or double-firing in edge cases)
-            const verifyRes = await fetch('/api/login');
-            const verifyData = await verifyRes.json();
+        for (let i = 0; i < 2; i++) {
+          try {
+            const res = await fetch('/api/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tableId: tid })
+            });
 
-            // If we have a session AND it matches the table we're trying to scan
-            if (verifyData.table && verifyData.table.id === tid) {
+            if (res.ok) {
+              loginSuccess = true;
               router.replace('/');
-              setTableNo(verifyData.table.number);
-              return; // Proceed as success
+              const vRes = await fetch('/api/login');
+              const vData = await vRes.json();
+              if (vData.table) setTableNo(vData.table.number);
+              break; // Success!
+            } else {
+              // If failed, wait before retry (unless it's the last attempt)
+              if (i < 1) await new Promise(resolve => setTimeout(resolve, 500));
             }
-
-            const err = await res.json();
-            setBlocked(err.message || "Invalid QR Code or Table Closed.");
+          } catch (e) {
+            console.error("Login attempt failed", e);
+            if (i < 1) await new Promise(resolve => setTimeout(resolve, 500));
           }
-        } catch (e) {
-          console.error(e);
-          setBlocked("Connection Error. Please try again.");
+        }
+
+        if (!loginSuccess) {
+          // Fallback: Check if we are ALREADY logged in to this table despite the error
+          const verifyRes = await fetch('/api/login');
+          const verifyData = await verifyRes.json();
+
+          if (verifyData.table && verifyData.table.id === tid) {
+            router.replace('/');
+            setTableNo(verifyData.table.number);
+            return;
+          }
+
+          setBlocked("Access Denied. Please scan again.");
         }
       } else {
         // 2. Check existing session
