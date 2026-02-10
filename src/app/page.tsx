@@ -129,43 +129,57 @@ function HomeContent() {
     ? menuItems
     : menuItems.filter(item => item.categoryId === activeCategory);
 
+  if (blocked) {
+    return (
+      <div className="fixed inset-0 z-[200] bg-background flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+        <div className="bg-destructive/10 p-6 rounded-full mb-6">
+          <Lock className="w-12 h-12 text-destructive" />
+        </div>
+        <h2 className="text-3xl font-bold mb-3 text-destructive">Access Denied</h2>
+        <p className="text-lg text-muted-foreground mb-8 max-w-md leading-relaxed">
+          {blocked}
+        </p>
+        <Button onClick={() => window.location.href = '/'} variant="outline" className="min-w-[140px]">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-muted-foreground animate-pulse">Verifying Access...</p>
+      </div>
+    );
+  }
+
+  if (!tableNo) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4 text-center">
+        <div className="bg-card border shadow-xl p-8 rounded-2xl max-w-md w-full animate-in zoom-in-95">
+          <div className="bg-orange-100 dark:bg-orange-900/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <QrCode className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Welcome to Cafe Delight</h2>
+          <p className="text-muted-foreground mb-6">
+            To place an order, please scan the QR code located on your table.
+          </p>
+          <p className="text-muted-foreground mb-6">
+            To place an order, please scan the QR code located on your table.
+          </p>
+          <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+            <p>If you have already scanned and see this message, please ask our staff for assistance.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Authenticated Content
   return (
     <div className="min-h-screen pb-20 bg-background text-foreground transition-colors duration-300 font-sans selection:bg-orange-500/30">
-
-      {/* Blocked Overlay */}
-      {blocked && (
-        <div className="fixed inset-0 z-[200] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-          <div className="bg-destructive/10 p-6 rounded-full mb-6">
-            <Lock className="w-12 h-12 text-destructive" />
-          </div>
-          <h2 className="text-3xl font-bold mb-3 text-destructive">Access Denied</h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-md leading-relaxed">
-            {blocked}
-          </p>
-          <Button onClick={() => window.location.href = '/'} variant="outline" className="min-w-[140px]">
-            Refresh Page
-          </Button>
-        </div>
-      )}
-
-      {/* Session Overlay */}
-      {!tableNo && !verifying && !blocked && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
-          <div className="bg-card border shadow-xl p-8 rounded-2xl max-w-md w-full animate-in zoom-in-95">
-            <div className="bg-orange-100 dark:bg-orange-900/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <QrCode className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Welcome to Cafe Delight</h2>
-            <p className="text-muted-foreground mb-6">
-              To place an order, please scan the QR code located on your table.
-            </p>
-            <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-              <p>If you have already scanned and see this message, please ask our staff for assistance.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
@@ -361,6 +375,6 @@ function HomeContent() {
         </div>
       </footer>
 
-    </div>
+    </div >
   );
 }
