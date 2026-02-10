@@ -59,11 +59,9 @@ export function TableManager() {
     }
 
     const generateQR = async (table: Table) => {
-        // Generate a URL that includes tableId and a token (using sessionId or ID for now)
-        // In a real app, generate a secure, rotating token.
-        const token = table.currentSessionId || "init-token-" + table.id;
-        // Construct the full URL for the customer to scan
-        const url = `${window.location.origin}/?tableId=${table.id}&token=${token}`;
+        // Generate a STATIC URL. The security (session) is handled by the server on scan.
+        // URL just points to the table entry point.
+        const url = `${window.location.origin}/?tableId=${table.id}`;
 
         try {
             const dataUrl = await QRCode.toDataURL(url);

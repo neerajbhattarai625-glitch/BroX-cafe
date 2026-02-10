@@ -43,9 +43,14 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "ID and status are required" }, { status: 400 });
         }
 
+        const data: any = { status };
+        if (status === 'CLOSED') {
+            data.currentSessionId = null;
+        }
+
         const updatedTable = await prisma.table.update({
             where: { id },
-            data: { status }
+            data
         });
 
         return NextResponse.json(updatedTable);
