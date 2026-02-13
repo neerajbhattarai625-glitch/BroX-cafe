@@ -69,20 +69,39 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
         } catch (error) { console.error(error) }
     }
 
+    const handleRequestAction = async (id: string, action: 'COMPLETED' | 'CANCELLED') => {
+        setRequests(requests.map(r => r.id === id ? { ...r, status: action } : r));
+        try {
+            await fetch('/api/requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: action })
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     const pendingOrders = orders.filter(o => o.status === "PENDING")
     const preparingOrders = orders.filter(o => o.status === "PREPARING")
+    const uncompletedRequests = requests.filter(r => r.status === 'PENDING');
 
     return (
-        <div className="min-h-screen bg-muted/40 p-6">
-            <div className="flex items-center justify-between mb-8">
+        <div className="min-h-screen bg-muted/40 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Kitchen Dashboard</h1>
-                    <p className="text-muted-foreground">Manage active orders and service requests</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                        {user?.role === 'COUNTER' ? 'Counter Dashboard' : 'Kitchen Dashboard'}
+                    </h1>
+                    <p className="text-muted-foreground">
+                        {user?.role === 'COUNTER' ? 'Manage payments and view orders' : 'Manage active orders and service requests'}
+                    </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="gap-2">
+                <div className="flex gap-2 items-center">
+                    <Button variant="outline" className="gap-2 bg-background">
                         <Bell className="h-4 w-4" />
-                        Requests <Badge variant="destructive" className="ml-1 rounded-full px-1">{requests.filter(r => r.status === 'PENDING').length}</Badge>
+                        <span className="hidden md:inline">Requests</span>
+                        <Badge variant="destructive" className="ml-1 rounded-full px-1">{uncompletedRequests.length}</Badge>
                     </Button>
                     <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
                         <LogOut className="h-5 w-5" />
@@ -94,76 +113,95 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             </div>
 
             <Tabs defaultValue="orders" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="orders">Orders</TabsTrigger>
-                    <TabsTrigger value="requests">Requests</TabsTrigger>
+                <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0 justify-start mb-6">
+                    <TabsTrigger value="orders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Orders</TabsTrigger>
+                    {user?.role !== 'COUNTER' && (
+                        <TabsTrigger value="requests" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">
+                            Requests
+                            {uncompletedRequests.length > 0 && (
+                                <span className="ml-2 w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                            )}
+                        </TabsTrigger>
+                    )}
                     {user?.role === 'ADMIN' && (
                         <>
-                            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                            <TabsTrigger value="menu">Menu</TabsTrigger>
-                            <TabsTrigger value="stats">Sales</TabsTrigger>
+                            <TabsTrigger value="reviews" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Reviews</TabsTrigger>
+                            <TabsTrigger value="menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Menu</TabsTrigger>
+                            <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Sales</TabsTrigger>
                         </>
                     )}
-                    <TabsTrigger value="tables">Tables</TabsTrigger>
+                    {user?.role !== 'COUNTER' && (
+                        <TabsTrigger value="tables" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Tables</TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="orders">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                        {/* Pending Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
-                                </h2>
-                                <Badge variant="secondary">{pendingOrders.length}</Badge>
+                        {/* Pending Column - Hidden for Counter unless needed */}
+                        {user?.role !== 'COUNTER' && (
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
+                                    </h2>
+                                    <Badge variant="secondary">{pendingOrders.length}</Badge>
+                                </div>
+                                {pendingOrders.map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                ))}
                             </div>
-                            {pendingOrders.map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
-                            ))}
-                        </div>
+                        )}
 
-                        {/* Preparing Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <ChefHat className="h-5 w-5 text-blue-500" /> Preparing
-                                </h2>
-                                <Badge variant="secondary">{preparingOrders.length}</Badge>
+                        {/* Preparing Column - Hidden for Counter unless needed */}
+                        {user?.role !== 'COUNTER' && (
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <ChefHat className="h-5 w-5 text-blue-500" /> Preparing
+                                    </h2>
+                                    <Badge variant="secondary">{preparingOrders.length}</Badge>
+                                </div>
+                                {preparingOrders.map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                ))}
                             </div>
-                            {preparingOrders.map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
-                            ))}
-                        </div>
+                        )}
 
-                        {/* Completed/Served Column */}
+                        {/* Completed/Served Column - Primary focus for Counter */}
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served / To Pay
                                 </h2>
                                 <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
                             </div>
                             {orders.filter(o => o.status === "SERVED").map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} />
+                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
                             ))}
                         </div>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="requests">
-                    <div className="grid gap-4 mt-4">
-                        {requests.length === 0 && <p>No active requests</p>}
-                        {requests.map(req => (
-                            <Card key={req.id}>
-                                <CardHeader>
-                                    <CardTitle>Table {req.tableNo}</CardTitle>
-                                    <CardDescription>{req.time}</CardDescription>
+                    <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
+                        {uncompletedRequests.length === 0 && <p className="text-muted-foreground">No active requests</p>}
+                        {uncompletedRequests.map(req => (
+                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="flex justify-between items-center">
+                                        <span>Table {req.tableNo}</span>
+                                        <span className="text-xs font-normal text-muted-foreground">{req.time}</span>
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-lg py-1 px-3">
+                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-md py-1 px-3 w-full justify-center">
                                         {req.type.replace('_', ' ')}
                                     </Badge>
                                 </CardContent>
+                                <CardFooter className="gap-2">
+                                    <Button size="sm" variant="outline" className="w-full flex-1" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
+                                    <Button size="sm" className="w-full flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
+                                </CardFooter>
                             </Card>
                         ))}
                     </div>
@@ -191,7 +229,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 </TabsContent>
 
                 <TabsContent value="menu">
-                    <div className="mt-4 max-w-2xl">
+                    <div className="mt-4 max-w-2xl mx-auto md:mx-0">
                         <MenuManager />
                     </div>
                 </TabsContent>
@@ -212,7 +250,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     )
 }
 
-function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (id: string, s: OrderStatus) => void }) {
+function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStatus: (id: string, s: OrderStatus) => void, role?: string }) {
     return (
         <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
@@ -242,12 +280,12 @@ function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (i
                 </div>
             </CardContent>
             <CardFooter className="gap-2">
-                {order.status === "PENDING" && (
+                {order.status === "PENDING" && role !== 'COUNTER' && (
                     <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onUpdateStatus(order.id, "PREPARING")}>
                         Start Cooking
                     </Button>
                 )}
-                {order.status === "PREPARING" && (
+                {order.status === "PREPARING" && role !== 'COUNTER' && (
                     <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => onUpdateStatus(order.id, "SERVED")}>
                         Mark Served
                     </Button>
