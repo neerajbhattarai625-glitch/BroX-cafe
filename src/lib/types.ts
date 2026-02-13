@@ -18,7 +18,7 @@ export type ServiceRequest = {
     id: string;
     tableNo: string;
     type: "CALL_WAITER" | "REQUEST_BILL" | "WATER";
-    status: "PENDING" | "COMPLETED";
+    status: "PENDING" | "COMPLETED" | "CANCELLED";
     time: string;
 };
 
