@@ -3,16 +3,20 @@ export type OrderItem = {
     qty: number;
 }
 
-export type OrderStatus = "PENDING" | "PREPARING" | "SERVED" | "PAID";
+export type OrderStatus = "PENDING" | "PREPARING" | "SERVED" | "PAID" | "CANCELLED";
 
-export type Order = {
-    id: string;
-    tableNo: string;
-    items: OrderItem[];
-    total: number;
-    status: OrderStatus;
-    time: string;
-};
+
+export interface Order {
+    id: string
+    tableNo: string
+    items: { name: string; qty: number }[]
+    total: number
+    status: OrderStatus
+    paymentMethod?: string
+    paymentStatus: 'PENDING' | 'PAID'
+    transactionId?: string
+    time: string
+}
 
 export type ServiceRequest = {
     id: string;

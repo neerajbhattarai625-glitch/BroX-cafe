@@ -50,14 +50,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Session expired or invalid" }, { status: 403 });
         }
 
+        // 3. Validate device ID matches
+        if (table.deviceId && table.deviceId !== session.deviceId) {
+            return NextResponse.json({ error: "Device mismatch - session hijacking detected" }, { status: 403 });
+        }
+
+        // 4. Create order with sessionId for isolation
         const newOrder = await prisma.order.create({
             data: {
                 tableNo,
+                sessionId: session.sessionId, // CRITICAL: Link order to session
                 items: JSON.stringify(items),
                 total,
                 status: 'PENDING',
                 paymentMethod: paymentMethod || 'CASH',
-                paymentStatus: 'PENDING' // Always start as pending, confirmed by counter or webhook
+                paymentStatus: 'PENDING'
             }
         });
 

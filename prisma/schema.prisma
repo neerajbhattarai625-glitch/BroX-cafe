@@ -8,8 +8,9 @@ datasource db {
 }
 
 model Order {
-  id        String   @id @default(uuid())
-  tableNo   String
+  id            String   @id @default(uuid())
+  tableNo       String
+  sessionId     String   // Link order to specific session
   items         String
   total         Float
   status        String
@@ -65,10 +66,12 @@ model User {
 }
 
 model Table {
-  id               String   @id @default(uuid())
-  number           String   @unique
-  status           String   @default("CLOSED") // OPEN, CLOSED
+  id               String    @id @default(uuid())
+  number           String    @unique
+  status           String    @default("CLOSED") // OPEN, CLOSED
   currentSessionId String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  deviceId         String?   // Lock table to specific device
+  sessionStartedAt DateTime? // Track when session started
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }

@@ -93,7 +93,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --font-sans: var(--font-outfit);
+  --font-sans: var(--font-jakarta);
+  --font-serif: var(--font-playfair);
+  --font-script: var(--font-dancing);
+  --font-heading: var(--font-oswald);
 }
 
 body {

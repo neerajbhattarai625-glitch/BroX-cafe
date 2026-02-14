@@ -39,25 +39,28 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, status } = body;
+        const { id, status, number } = body;
 
-        if (!id || !status) {
-            return NextResponse.json({ error: "ID and status are required" }, { status: 400 });
+        const dataToUpdate: any = {};
+        if (status) {
+            dataToUpdate.status = status;
+            // If closing the table, clear the session and device lock
+            if (status === 'CLOSED') {
+                dataToUpdate.currentSessionId = null;
+                dataToUpdate.deviceId = null;
+                dataToUpdate.sessionStartedAt = null;
+            }
         }
-
-        const data: any = { status };
-        if (status === 'CLOSED') {
-            data.currentSessionId = null;
-        }
+        if (number) dataToUpdate.number = number;
 
         const updatedTable = await prisma.table.update({
             where: { id },
-            data
+            data: dataToUpdate
         });
 
         return NextResponse.json(updatedTable);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to update table" }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to update table' }, { status: 500 });
     }
 }
 

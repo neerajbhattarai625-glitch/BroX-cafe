@@ -11,9 +11,81 @@ import type { ServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
 import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
 import { TableManager } from "@/components/table-manager"
+import { cn } from "@/lib/utils"
 
 interface DashboardClientProps {
     initialUser: { role: string } | null
+}
+
+function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStatus: (id: string, s: OrderStatus, ps?: string) => void, role?: string }) {
+    return (
+        <Card className={cn(
+            "border-l-4 shadow-sm hover:shadow-md transition-shadow",
+            order.status === "PENDING" ? "border-l-primary" : "border-l-green-500",
+            order.paymentMethod === 'ONLINE' && order.paymentStatus === 'PENDING' && "ring-2 ring-purple-500/20"
+        )}>
+            <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="text-lg">Table {order.tableNo}</CardTitle>
+                        <CardDescription className="flex items-center gap-1 mt-1">
+                            <Clock className="h-3 w-3" /> {order.time}
+                        </CardDescription>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                        <Badge variant={order.status === "PENDING" ? "destructive" : "default"}>
+                            {order.status}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                            {order.paymentMethod}
+                        </Badge>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="pb-3 text-sm">
+                <ul className="space-y-1">
+                    {order.items.map((item, i) => (
+                        <li key={i} className="flex justify-between">
+                            <span>{item.qty}x {item.name}</span>
+                        </li>
+                    ))}
+                </ul>
+                <div className="mt-4 pt-4 border-t flex justify-between font-bold items-center">
+                    <span>Total</span>
+                    <div className="flex flex-col items-end">
+                        <span>Rs. {order.total}</span>
+                        <span className={cn("text-[10px] uppercase font-bold", order.paymentStatus === 'PAID' ? "text-green-600" : "text-orange-500")}>
+                            {order.paymentStatus}
+                        </span>
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter className="gap-2">
+                {order.status === "PENDING" && role !== 'COUNTER' && (
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onUpdateStatus(order.id, "PREPARING")}>
+                        Start Cooking
+                    </Button>
+                )}
+                {order.status === "PREPARING" && role !== 'COUNTER' && (
+                    <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => onUpdateStatus(order.id, "SERVED")}>
+                        Mark Served
+                    </Button>
+                )}
+                {order.status === "SERVED" && (
+                    <Button
+                        variant={order.paymentStatus === 'PAID' ? "outline" : "default"}
+                        className={cn("w-full transition-all", order.paymentStatus !== 'PAID' && order.paymentMethod === 'ONLINE' && "bg-purple-600 hover:bg-purple-700")}
+                        onClick={() => onUpdateStatus(order.id, "SERVED", "PAID")}
+                        disabled={order.paymentStatus === 'PAID'}
+                    >
+                        {order.paymentStatus === 'PAID' ? "Paid & Verified" : (
+                            order.paymentMethod === 'ONLINE' ? "Verify Payment" : "Mark Paid"
+                        )}
+                    </Button>
+                )}
+            </CardFooter>
+        </Card>
+    )
 }
 
 export function DashboardClient({ initialUser }: DashboardClientProps) {
@@ -58,13 +130,13 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
         return () => clearInterval(interval)
     }, [])
 
-    const updateStatus = async (id: string, newStatus: OrderStatus) => {
-        setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o))
+    const updateStatus = async (id: string, newStatus: OrderStatus, paymentStatus?: string) => {
+        setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus, ...(paymentStatus ? { paymentStatus: paymentStatus as 'PENDING' | 'PAID' } : {}) } : o))
         try {
             await fetch('/api/orders', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: newStatus })
+                body: JSON.stringify({ id, status: newStatus, ...(paymentStatus ? { paymentStatus } : {}) })
             })
         } catch (error) { console.error(error) }
     }
@@ -242,7 +314,9 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
 
                 <TabsContent value="tables">
                     <div className="mt-4">
-                        <TableManager userRole={user?.role} />
+                        <div className="mt-4">
+                            <TableManager userRole={user?.role} orders={orders} />
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
@@ -250,52 +324,5 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     )
 }
 
-function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStatus: (id: string, s: OrderStatus) => void, role?: string }) {
-    return (
-        <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-lg">Table {order.tableNo}</CardTitle>
-                        <CardDescription className="flex items-center gap-1 mt-1">
-                            <Clock className="h-3 w-3" /> {order.time}
-                        </CardDescription>
-                    </div>
-                    <Badge variant={order.status === "PENDING" ? "destructive" : "default"}>
-                        {order.status}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="pb-3 text-sm">
-                <ul className="space-y-1">
-                    {order.items.map((item, i) => (
-                        <li key={i} className="flex justify-between">
-                            <span>{item.qty}x {item.name}</span>
-                        </li>
-                    ))}
-                </ul>
-                <div className="mt-4 pt-4 border-t flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>Rs. {order.total}</span>
-                </div>
-            </CardContent>
-            <CardFooter className="gap-2">
-                {order.status === "PENDING" && role !== 'COUNTER' && (
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onUpdateStatus(order.id, "PREPARING")}>
-                        Start Cooking
-                    </Button>
-                )}
-                {order.status === "PREPARING" && role !== 'COUNTER' && (
-                    <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => onUpdateStatus(order.id, "SERVED")}>
-                        Mark Served
-                    </Button>
-                )}
-                {order.status === "SERVED" && (
-                    <Button variant="outline" className="w-full" onClick={() => onUpdateStatus(order.id, "PAID")}>
-                        Mark Paid
-                    </Button>
-                )}
-            </CardFooter>
-        </Card>
-    )
-}
+// Utility for styles
+// import { cn } from "@/lib/utils" removed

@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Trash2, QrCode, Power } from "lucide-react"
+import { Plus, Trash2, QrCode, Power, AlertTriangle } from "lucide-react"
 import QRCode from "qrcode"
+import type { Order } from "@/lib/types"
 
 interface Table {
     id: string
@@ -17,7 +18,7 @@ interface Table {
     currentSessionId?: string
 }
 
-export function TableManager({ userRole }: { userRole?: string }) {
+export function TableManager({ userRole, orders = [] }: { userRole?: string, orders?: Order[] }) {
     const [tables, setTables] = useState<Table[]>([])
     const [newTableNo, setNewTableNo] = useState("")
     const [qrUrl, setQrUrl] = useState<string | null>(null)
@@ -49,6 +50,16 @@ export function TableManager({ userRole }: { userRole?: string }) {
     }
 
     const toggleStatus = async (table: Table) => {
+        if (table.status === 'OPEN') {
+            const tableOrders = orders.filter(o => o.tableNo === table.number && o.status !== 'PAID');
+            const hasUnpaidOrders = tableOrders.some(o => o.paymentStatus !== 'PAID' && o.status !== 'CANCELLED');
+
+            if (hasUnpaidOrders) {
+                alert(`Cannot close table. There are unpaid orders for Table ${table.number}.`);
+                return;
+            }
+        }
+
         const newStatus = table.status === 'OPEN' ? 'CLOSED' : 'OPEN'
         await fetch('/api/tables', {
             method: 'PUT',
@@ -59,9 +70,8 @@ export function TableManager({ userRole }: { userRole?: string }) {
     }
 
     const generateQR = async (table: Table) => {
-        // Generate a STATIC URL. The security (session) is handled by the server on scan.
-        // URL just points to the table entry point.
-        const url = `${window.location.origin}/?tableId=${table.id}`;
+        // Generate a URL pointing to the specific table page
+        const url = `${window.location.origin}/table/${table.id}`;
 
         try {
             const dataUrl = await QRCode.toDataURL(url);
