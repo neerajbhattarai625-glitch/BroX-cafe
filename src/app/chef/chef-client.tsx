@@ -118,7 +118,7 @@ export function ChefClient() {
         <div className="min-h-screen bg-background p-6 font-sans text-foreground">
             <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-200">
+                    <div className="h-12 w-12 rounded-xl bg-orange-500 dark:bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-200 dark:shadow-orange-900">
                         <ChefHat className="h-7 w-7" />
                     </div>
                     <div>
@@ -136,7 +136,7 @@ export function ChefClient() {
                     <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
                         <Volume2 className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50">
+                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
                         <LogOut className="h-5 w-5" />
                     </Button>
                 </div>
@@ -144,13 +144,13 @@ export function ChefClient() {
 
             {/* Service Requests Section (Collapsible or floating? Let's put it at top if active) */}
             {uncompletedRequests.length > 0 && (
-                <div className="max-w-7xl mx-auto mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                    <h3 className="font-bold text-yellow-800 mb-4 flex items-center gap-2">
+                <div className="max-w-7xl mx-auto mb-8 p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+                    <h3 className="font-bold text-yellow-800 dark:text-yellow-200 mb-4 flex items-center gap-2">
                         <Bell className="h-4 w-4" /> Service Requests & Voice Orders
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {uncompletedRequests.map(req => (
-                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm bg-white">
+                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm">
                                 <CardHeader className="pb-2 p-4">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-sm font-bold">Table {req.tableNo}</CardTitle>
@@ -186,9 +186,9 @@ export function ChefClient() {
                 {/* Column: PENDING */}
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-neutral-800">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
                             New Orders
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-2.5 py-0.5 rounded-full">
+                            <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900 border-none px-2.5 py-0.5 rounded-full">
                                 {pendingOrders.length}
                             </Badge>
                         </h2>
@@ -196,7 +196,7 @@ export function ChefClient() {
 
                     <div className="space-y-4">
                         {pendingOrders.length === 0 && (
-                            <div className="bg-white border-2 border-dashed border-neutral-200 rounded-2xl p-12 text-center text-neutral-400">
+                            <div className="bg-card border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center text-muted-foreground">
                                 <ChefHat className="h-12 w-12 mx-auto mb-3 opacity-20" />
                                 <p className="font-medium text-lg">No pending orders</p>
                             </div>
@@ -220,7 +220,7 @@ export function ChefClient() {
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold flex items-center gap-2 text-neutral-800">
                             In Preparation
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none px-2.5 py-0.5 rounded-full">
+                            <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900 border-none px-2.5 py-0.5 rounded-full">
                                 {preparingOrders.length}
                             </Badge>
                         </h2>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, ShieldAlert, MapPin, Volume2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ChangePasswordModal } from "@/components/change-password-modal"
 import type { ServiceRequest as BaseServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
 
 interface ServiceRequest extends BaseServiceRequest {
@@ -353,6 +354,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                             <span className="hidden md:inline">Staff Management</span>
                         </Button>
                     )}
+                    <ChangePasswordModal />
                     <ThemeToggle />
                     {user?.role !== 'ADMIN' && (
                         <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
