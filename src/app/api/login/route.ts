@@ -142,6 +142,11 @@ export async function POST(request: Request) {
         response.cookies.set("auth_token", "staff_token", { httpOnly: true, path: "/" });
         return response;
     }
+    if (username === "chef" && password === "chef123") {
+        const response = NextResponse.json({ success: true, role: "STAFF" });
+        response.cookies.set("auth_token", "chef_token", { httpOnly: true, path: "/" });
+        return response;
+    }
     if (username === "counter" && password === "counter123") {
         const response = NextResponse.json({ success: true, role: "COUNTER" });
         response.cookies.set("auth_token", "counter_token", { httpOnly: true, path: "/" });

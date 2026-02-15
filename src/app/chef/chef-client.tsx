@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2, Bell } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ChangePasswordModal } from "@/components/change-password-modal"
 import type { Order, ServiceRequest } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -126,6 +127,7 @@ export function ChefClient() {
                     </div>
                 </div>
                 <div className="flex gap-3">
+                    <ChangePasswordModal />
                     <ThemeToggle />
                     <Button variant="outline" size="icon" title={`${uncompletedRequests.length} Active Requests`} className="rounded-xl border-neutral-200 dark:border-neutral-800 relative">
                         <Bell className="h-5 w-5" />

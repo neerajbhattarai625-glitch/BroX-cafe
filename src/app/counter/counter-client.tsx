@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut, Volume2, Bell } from "lucide-react" // Banknote icon
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ChangePasswordModal } from "@/components/change-password-modal"
 import type { Order, ServiceRequest } from "@/lib/types" // Ensure types are updated if needed
 import { TableManager } from "@/components/table-manager"
 import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
@@ -235,6 +236,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                         <span className="hidden md:inline">Requests</span>
                         <Badge variant="destructive" className="ml-1 rounded-full px-1">{uncompletedRequests.length}</Badge>
                     </Button>
+                    <ChangePasswordModal />
                     <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
                         <LogOut className="h-5 w-5" />
                     </Button>
