@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut } from "lucide-react" // Banknote icon
+import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut, Volume2 } from "lucide-react" // Banknote icon
 import type { Order } from "@/lib/types" // Ensure types are updated if needed
 import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
 
@@ -16,6 +16,7 @@ interface CounterClientProps {
 
 export function CounterClient({ initialUser }: CounterClientProps) {
     const [orders, setOrders] = useState<any[]>([]) // Using any for now to bypass strict type check on new fields till restart
+    const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
     const router = useRouter()
 
     const handleLogout = async () => {
@@ -23,12 +24,23 @@ export function CounterClient({ initialUser }: CounterClientProps) {
         router.push('/login')
     }
 
+    const testSound = () => {
+        const audio = new Audio("/sounds/notification.mp3");
+        audio.play().catch(e => alert("Audio playback failed. Please ensure you have interacted with the page or check browser settings."));
+    }
+
     const fetchData = async () => {
         try {
             const res = await fetch('/api/orders')
             if (res.ok) {
                 const data = await res.json()
+                // Play sound if new order arrived
+                if (prevOrderCount !== null && data.length > prevOrderCount) {
+                    const audio = new Audio("/sounds/notification.mp3");
+                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                }
                 setOrders(data)
+                setPrevOrderCount(data.length)
             }
         } catch (error) {
             console.error("Failed to fetch orders", error)
@@ -83,7 +95,10 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                     <h1 className="text-3xl font-bold tracking-tight">Counter Dashboard</h1>
                     <p className="text-muted-foreground">Manage payments and view sales</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
+                        <Volume2 className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
                         <LogOut className="h-5 w-5" />
                     </Button>

@@ -123,6 +123,11 @@ function HomeContent() {
                 setVerifying(false);
                 return;
               }
+              if (errorData.code === 'DEVICE_ALREADY_IN_SESSION') {
+                setBlocked(errorData.error);
+                setVerifying(false);
+                return;
+              }
               // If failed, wait before retry (unless it's the last attempt)
               if (i < 1) await new Promise(resolve => setTimeout(resolve, 500));
             }

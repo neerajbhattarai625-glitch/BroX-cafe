@@ -16,6 +16,10 @@ export interface Order {
     paymentStatus: 'PENDING' | 'PAID'
     transactionId?: string
     time: string
+    deviceName?: string       // NEW
+    location?: string         // NEW
+    isOnlineOrder?: boolean   // NEW
+    customerPhone?: string    // NEW
 }
 
 export type ServiceRequest = {

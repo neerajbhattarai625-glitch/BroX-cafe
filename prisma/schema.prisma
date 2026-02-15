@@ -9,14 +9,18 @@ datasource db {
 
 model Order {
   id            String   @id @default(uuid())
-  tableNo       String
-  sessionId     String   // Link order to specific session
+  tableNo       String?
+  sessionId     String?
   items         String
   total         Float
   status        String
-  paymentMethod String?  @default("CASH") // CASH, ONLINE
-  paymentStatus String   @default("PENDING") // PENDING, PAID, FAILED
+  paymentMethod String?  @default("CASH")
+  paymentStatus String   @default("PENDING")
   transactionId String?
+  deviceName    String?  // NEW: Track device name
+  location      String?  // NEW: Track geolocation
+  isOnlineOrder Boolean  @default(false) // NEW: Distinguish guest orders
+  customerPhone String?  // NEW: Contact info for pickup
   createdAt     DateTime @default(now())
 }
 
@@ -52,26 +56,26 @@ model MenuItem {
   image       String?
   isAvailable Boolean  @default(true)
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  category    Category @relation(fields: [categoryId], references: [id])
 }
 
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
-  role      String   @default("STAFF") // ADMIN, STAFF, COUNTER
+  role      String   @default("STAFF")
   createdAt DateTime @default(now())
 }
 
 model Table {
   id               String    @id @default(uuid())
   number           String    @unique
-  status           String    @default("CLOSED") // OPEN, CLOSED
+  status           String    @default("CLOSED")
   currentSessionId String?
-  deviceId         String?   // Lock table to specific device
-  sessionStartedAt DateTime? // Track when session started
+  deviceId         String?
+  sessionStartedAt DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }

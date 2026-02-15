@@ -178,6 +178,18 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                             {lang === 'en' ? 'NP' : 'EN'}
                         </Button>
 
+                        {!tableNo && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="hidden md:flex rounded-full gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-50"
+                                onClick={() => setShowScanner(true)}
+                            >
+                                <Scan className="w-4 h-4" />
+                                Scan Table QR
+                            </Button>
+                        )}
+
                         <CartSheet />
                     </div>
                 </div>
@@ -207,13 +219,23 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                         {lang === 'en' ? 'Experience the finest Momos, savory Noodles, and refreshing drinks.' : 'सहरकै उत्कृष्ट मोमो, चाउमिन र पेय पदार्थको अनुभव लिनुहोस्।'}
                     </p>
 
-                    <div className="hero-text-reveal pt-6">
+                    <div className="hero-text-reveal pt-6 flex flex-wrap justify-center gap-4">
                         <Button
                             className="bg-orange-600 hover:bg-orange-700 text-white font-heading tracking-wide text-lg h-14 px-8 rounded-full shadow-xl shadow-orange-500/30 transition-transform hover:scale-105"
                             onClick={() => document.getElementById('menu-start')?.scrollIntoView({ behavior: 'smooth' })}
                         >
-                            {lang === 'en' ? 'ORDER NOW' : 'अर्डर गर्नुहोस्'}
+                            {lang === 'en' ? 'VIEW MENU' : 'मेनु हेर्नुहोस्'}
                         </Button>
+                        {!tableNo && (
+                            <Button
+                                variant="outline"
+                                className="bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 font-heading tracking-wide text-lg h-14 px-8 rounded-full transition-transform hover:scale-105 gap-2"
+                                onClick={() => setShowScanner(true)}
+                            >
+                                <Scan className="w-5 h-5 text-orange-400" />
+                                {lang === 'en' ? 'SCAN TABLE QR' : 'टेबल QR स्क्यान'}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -353,7 +375,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
             {/* Floating Call Waiter Button - Only for Table Sessions */}
             {tableNo && (
                 <div className="fixed bottom-6 right-6 z-40">
-                    <ServiceMenu />
+                    <ServiceMenu tableNo={tableNo} />
                 </div>
             )}
 

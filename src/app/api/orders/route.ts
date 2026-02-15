@@ -24,47 +24,61 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { tableNo, items, total, paymentMethod } = body;
+        const { tableNo, items, total, paymentMethod, deviceName, location, isOnlineOrder } = body;
 
-        // 1. Verify Session
-        const cookieStore = await cookies();
-        const sessionCookie = cookieStore.get("table_session");
+        let sessionId = null;
 
-        if (!sessionCookie) {
-            return NextResponse.json({ error: "No active session" }, { status: 401 });
+        // 1. Session Validation (Only for Table Orders)
+        if (!isOnlineOrder) {
+            const cookieStore = await cookies();
+            const sessionCookie = cookieStore.get("table_session");
+
+            if (!sessionCookie) {
+                return NextResponse.json({ error: "No active session" }, { status: 401 });
+            }
+
+            let session;
+            try {
+                session = JSON.parse(sessionCookie.value);
+            } catch (e) {
+                return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+            }
+
+            // Validate against DB
+            const table = await prisma.table.findUnique({
+                where: { id: session.tableId }
+            });
+
+            if (!table || table.status !== 'OPEN' || table.currentSessionId !== session.sessionId) {
+                return NextResponse.json({ error: "Session expired or invalid" }, { status: 403 });
+            }
+
+            // Validate device ID matches
+            if (table.deviceId && table.deviceId !== session.deviceId) {
+                return NextResponse.json({ error: "Device mismatch - session hijacking detected" }, { status: 403 });
+            }
+
+            sessionId = session.sessionId;
         }
 
-        let session;
-        try {
-            session = JSON.parse(sessionCookie.value);
-        } catch (e) {
-            return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+        // 2. Mandatory Validation for Online Orders
+        if (isOnlineOrder && (!location || !deviceName)) {
+            return NextResponse.json({ error: "Location and Device Info are mandatory for online orders" }, { status: 400 });
         }
 
-        // 2. Validate against DB
-        const table = await prisma.table.findUnique({
-            where: { id: session.tableId }
-        });
-
-        if (!table || table.status !== 'OPEN' || table.currentSessionId !== session.sessionId) {
-            return NextResponse.json({ error: "Session expired or invalid" }, { status: 403 });
-        }
-
-        // 3. Validate device ID matches
-        if (table.deviceId && table.deviceId !== session.deviceId) {
-            return NextResponse.json({ error: "Device mismatch - session hijacking detected" }, { status: 403 });
-        }
-
-        // 4. Create order with sessionId for isolation
+        // 3. Create order
         const newOrder = await prisma.order.create({
             data: {
-                tableNo,
-                sessionId: session.sessionId, // CRITICAL: Link order to session
+                tableNo: tableNo || "ONLINE",
+                sessionId,
                 items: JSON.stringify(items),
                 total,
                 status: 'PENDING',
                 paymentMethod: paymentMethod || 'CASH',
-                paymentStatus: 'PENDING'
+                paymentStatus: 'PENDING',
+                deviceName,
+                location,
+                isOnlineOrder: !!isOnlineOrder
             }
         });
 
@@ -74,6 +88,7 @@ export async function POST(request: Request) {
             time: newOrder.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     } catch (error) {
+        console.error("ORDER ERROR:", error);
         return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
     }
 }

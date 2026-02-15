@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { tableNo, type } = body;
+        console.log(`[API] Service Request: Table ${tableNo}, Type ${type}`);
 
         const newReq = await prisma.serviceRequest.create({
             data: {

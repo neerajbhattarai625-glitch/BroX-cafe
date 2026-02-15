@@ -9,7 +9,11 @@ import {
 import { BellRing, FileText, GlassWater } from "lucide-react"
 import { useState } from "react"
 
-export function ServiceMenu() {
+interface ServiceMenuProps {
+    tableNo: string;
+}
+
+export function ServiceMenu({ tableNo }: ServiceMenuProps) {
     const [loading, setLoading] = useState<string | null>(null)
     const [open, setOpen] = useState(false)
 
@@ -20,7 +24,7 @@ export function ServiceMenu() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tableNo: "5", // Static for now
+                    tableNo,
                     type
                 })
             })

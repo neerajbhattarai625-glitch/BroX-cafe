@@ -15,7 +15,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { ShoppingCart, Trash2, Plus, Minus, CheckCircle2, Loader2, Lock } from "lucide-react"
+import { ShoppingCart, Trash2, Plus, Minus, CheckCircle2, Loader2, Lock, MapPin, Globe } from "lucide-react"
 import { useCartStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -55,9 +55,81 @@ export function CartSheet() {
     const [onlineProvider, setOnlineProvider] = React.useState<string>('ESEWA')
     const [isPaid, setIsPaid] = React.useState(false)
     const [isRedirecting, setIsRedirecting] = React.useState(false)
+    const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null)
+    const [locationError, setLocationError] = React.useState<string | null>(null)
+    const [isGettingLocation, setIsGettingLocation] = React.useState(false)
+
+    const requestLocation = async () => {
+        setIsGettingLocation(true)
+        setLocationError(null)
+
+        if (!navigator.geolocation) {
+            setLocationError("Geolocation not supported. Use a modern browser.")
+            setIsGettingLocation(false)
+            return
+        }
+
+        // 1. Proactive Permission Check (if supported)
+        if (navigator.permissions && navigator.permissions.query) {
+            try {
+                const result = await navigator.permissions.query({ name: 'geolocation' })
+                if (result.state === 'denied') {
+                    setLocationError("Access is BLOCKED. Click the 🔒 Lock icon in your URL bar and 'Allow' location.")
+                    setIsGettingLocation(false)
+                    return
+                }
+            } catch (e) {
+                console.log("Permissions API check failed", e)
+            }
+        }
+
+        const options = { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+
+        const onSuccess = (position: GeolocationPosition) => {
+            setLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            })
+            setIsGettingLocation(false)
+            setLocationError(null)
+        }
+
+        const onError = (error: GeolocationPositionError) => {
+            console.error("Location error (High Accuracy):", error)
+
+            // Fallback to low accuracy if high accuracy fails or times out
+            if (error.code === 3 || error.code === 2) {
+                console.log("Retrying with low accuracy...")
+                navigator.geolocation.getCurrentPosition(onSuccess, (err2) => {
+                    console.error("Location error (Low Accuracy):", err2)
+                    let msg = "Could not verify location."
+                    if (err2.code === 1) msg = "Access Denied. Please enable location in settings."
+                    else if (err2.code === 2) msg = "Position Unavailable. Check your signal."
+                    else if (err2.code === 3) msg = "Timed out. Try again from a better spot."
+                    setLocationError(msg)
+                    setIsGettingLocation(false)
+                }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 })
+                return
+            }
+
+            let msg = "Could not verify location."
+            if (error.code === 1) msg = "Access Denied. Please enable location in settings."
+            else if (error.code === 2) msg = "Position Unavailable."
+            else if (error.code === 3) msg = "Timed Out."
+
+            setLocationError(msg)
+            setIsGettingLocation(false)
+        }
+
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, options)
+    }
 
     const handlePlaceOrder = async () => {
-        if (!tableNo) return
+        // If online order (no tableNo), location is MANDATORY
+        if (!tableNo && !location) {
+            setLocationError("Please verify your location before placing an online order.")
+            return
+        }
 
         setIsSubmitting(true)
 
@@ -70,6 +142,9 @@ export function CartSheet() {
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
+        const deviceName = `${navigator.platform} (${navigator.vendor || 'Unknown Browser'})`
+        const locationStr = location ? `${location.lat},${location.lng}` : null
+
         try {
             const res = await fetch('/api/orders', {
                 method: 'POST',
@@ -78,7 +153,10 @@ export function CartSheet() {
                     tableNo,
                     items: items.map(i => ({ name: i.name, qty: i.quantity })),
                     total: Math.round(total() * 1.1 * 1.13),
-                    paymentMethod: paymentMethod === 'ONLINE' ? onlineProvider : 'CASH'
+                    paymentMethod: paymentMethod === 'ONLINE' ? onlineProvider : 'CASH',
+                    deviceName,
+                    location: locationStr,
+                    isOnlineOrder: !tableNo
                 })
             })
 
@@ -117,40 +195,44 @@ export function CartSheet() {
                     )}
                 </Button>
             </SheetTrigger>
-            <SheetContent>
-                <SheetHeader>
+            <SheetContent className="flex flex-col h-full max-h-screen">
+                <SheetHeader className="flex-none pb-2">
                     <SheetTitle>Your Order</SheetTitle>
                     <SheetDescription>
                         Review your items before placing the order.
                     </SheetDescription>
                 </SheetHeader>
-                <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
-                    {items.length === 0 && (
-                        <p className="text-center text-muted-foreground py-8">Your cart is empty.</p>
-                    )}
-                    {items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="font-medium">{item.name}</span>
-                                <span className="text-sm text-muted-foreground">Rs. {item.price} x {item.quantity}</span>
+
+                <div className="flex-1 overflow-y-auto pr-2 -mr-2 px-1">
+                    <div className="space-y-4 py-4">
+                        {items.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">Your cart is empty.</p>
+                        )}
+                        {items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="font-medium">{item.name}</span>
+                                    <span className="text-sm text-muted-foreground">Rs. {item.price} x {item.quantity}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => decreaseQuantity(item.id)}>
+                                        <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="font-bold w-4 text-center">{item.quantity}</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => increaseQuantity(item.id)}>
+                                        <Plus className="h-3 w-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive ml-2" onClick={() => removeItem(item.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => decreaseQuantity(item.id)}>
-                                    <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="font-bold w-4 text-center">{item.quantity}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => increaseQuantity(item.id)}>
-                                    <Plus className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive ml-2" onClick={() => removeItem(item.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                    <Separator />
-                    <Separator />
-                    <div className="space-y-1.5 pt-4">
+                        ))}
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="space-y-1.5 py-4">
                         <div className="flex items-center justify-between text-muted-foreground">
                             <span>Subtotal</span>
                             <span>Rs. {total()}</span>
@@ -169,93 +251,143 @@ export function CartSheet() {
                             <span>Rs. {Math.round(total() * 1.1 * 1.13)}</span>
                         </div>
                     </div>
-                </div>
-                <SheetFooter className="sm:flex-col sm:space-x-0">
-                    <div className="w-full flex flex-col gap-2">
-                        <span className="font-bold flex items-center gap-2">
-                            {tableNo ? (
-                                <>
-                                    {tableNo}
-                                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                </>
-                            ) : (
-                                <span className="text-destructive text-xs">Not Verified</span>
-                            )}
-                        </span>
-                    </div>
 
-                    <div className="space-y-2 mt-2">
-                        <Label>Payment Method</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button
-                                variant={paymentMethod === 'CASH' ? 'default' : 'outline'}
-                                onClick={() => setPaymentMethod('CASH')}
-                                className="w-full"
-                            >
-                                Cash
-                            </Button>
-                            <Button
-                                variant={paymentMethod === 'ONLINE' ? 'default' : 'outline'}
-                                onClick={() => setPaymentMethod('ONLINE')}
-                                className="w-full"
-                            >
-                                Online
-                            </Button>
+                    <Separator className="my-4" />
+
+                    <div className="space-y-4 py-4">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ordering From</span>
+                            <span className="font-bold flex items-center gap-2 text-lg">
+                                {tableNo ? (
+                                    <>
+                                        Table {tableNo}
+                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                    </>
+                                ) : (
+                                    <span className="text-destructive text-xs">Not Verified</span>
+                                )}
+                            </span>
                         </div>
-                    </div>
 
-                    {paymentMethod === 'ONLINE' && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                            <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Provider</Label>
-                            <div className="grid grid-cols-1 gap-2.5">
-                                {['ESEWA', 'KHALTI', 'FONEPAY', 'BANKING'].map((provider) => (
-                                    <motion.button
-                                        key={provider}
-                                        whileHover={{ scale: 1.02, backgroundColor: "rgba(0,0,0,0.02)" }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => setOnlineProvider(provider)}
-                                        className={cn(
-                                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left bg-white",
-                                            onlineProvider === provider
-                                                ? "border-primary shadow-sm"
-                                                : "border-transparent hover:border-gray-200 shadow-sm"
-                                        )}
-                                    >
-                                        <div className="flex items-center justify-center shrink-0">
-                                            {PAYMENT_LOGOS[provider as keyof typeof PAYMENT_LOGOS]}
-                                        </div>
-                                        <div className="flex flex-col grow">
-                                            <span className="font-bold text-base text-gray-900">
-                                                {provider === 'ESEWA' && "eSewa Mobile Wallet"}
-                                                {provider === 'KHALTI' && "Khalti Digital Wallet"}
-                                                {provider === 'FONEPAY' && "Fonepay Direct"}
-                                                {provider === 'BANKING' && "Mobile Banking App"}
-                                            </span>
-                                        </div>
-                                        {onlineProvider === provider && (
-                                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                            </div>
-                                        )}
-                                    </motion.button>
-                                ))}
+                        <div className="space-y-2">
+                            <Label>Payment Method</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    variant={paymentMethod === 'CASH' ? 'default' : 'outline'}
+                                    onClick={() => setPaymentMethod('CASH')}
+                                    className="w-full"
+                                >
+                                    Cash
+                                </Button>
+                                <Button
+                                    variant={paymentMethod === 'ONLINE' ? 'default' : 'outline'}
+                                    onClick={() => setPaymentMethod('ONLINE')}
+                                    className="w-full"
+                                >
+                                    Online
+                                </Button>
                             </div>
+                        </div>
+
+                        {paymentMethod === 'ONLINE' && (
+                            <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Provider</Label>
+                                <div className="grid grid-cols-1 gap-2.5 pb-4">
+                                    {['ESEWA', 'KHALTI', 'FONEPAY', 'BANKING'].map((provider) => (
+                                        <motion.button
+                                            key={provider}
+                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(0,0,0,0.02)" }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={() => setOnlineProvider(provider)}
+                                            className={cn(
+                                                "flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left bg-white",
+                                                onlineProvider === provider
+                                                    ? "border-primary shadow-sm"
+                                                    : "border-transparent hover:border-gray-200 shadow-sm"
+                                            )}
+                                        >
+                                            <div className="flex items-center justify-center shrink-0">
+                                                {PAYMENT_LOGOS[provider as keyof typeof PAYMENT_LOGOS]}
+                                            </div>
+                                            <div className="flex flex-col grow">
+                                                <span className="font-bold text-base text-gray-900">
+                                                    {provider === 'ESEWA' && "eSewa Mobile Wallet"}
+                                                    {provider === 'KHALTI' && "Khalti Digital Wallet"}
+                                                    {provider === 'FONEPAY' && "Fonepay Direct"}
+                                                    {provider === 'BANKING' && "Mobile Banking App"}
+                                                </span>
+                                            </div>
+                                            {onlineProvider === provider && (
+                                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                </div>
+                                            )}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <SheetFooter className="flex-none pt-4 border-t bg-background sm:flex-col gap-2">
+                    {!tableNo && !location && (
+                        <div className="w-full animate-in fade-in slide-in-from-bottom-2">
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-full h-14 gap-3 border-2 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all",
+                                    locationError ? "border-red-500 bg-red-50 text-red-600 animate-shake" : "border-primary/50 text-primary hover:bg-primary/5"
+                                )}
+                                onClick={requestLocation}
+                                disabled={isGettingLocation}
+                            >
+                                {isGettingLocation ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <MapPin className={cn("w-5 h-5", !locationError && "animate-bounce")} />
+                                )}
+                                {locationError ? "Permission Needed - Try Again" : "Verify Location to Order"}
+                            </Button>
+                            {locationError && (
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-[9px] text-red-600 text-center font-black italic uppercase leading-none">
+                                        {locationError}
+                                    </p>
+                                    <p className="text-[8px] text-muted-foreground text-center font-medium">
+                                        Tip: Click the 🔒 Lock/Info icon in your URL bar to allow access.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {location && !tableNo && (
+                        <div className="w-full flex items-center justify-center gap-2 text-green-600 bg-green-50/50 border border-green-200 py-3 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest animate-in zoom-in duration-500">
+                            <CheckCircle2 className="w-4 h-4" />
+                            GPS Location Verified
                         </div>
                     )}
 
                     <SheetClose asChild>
                         <Button
                             type="submit"
-                            className="w-full mt-4 bg-green-600 hover:bg-green-700"
-                            disabled={items.length === 0 || isSubmitting || !tableNo}
+                            className="w-full bg-green-600 hover:bg-green-700 h-14 text-lg font-black italic uppercase tracking-tight shadow-lg shadow-green-600/20"
+                            disabled={items.length === 0 || isSubmitting || (!tableNo && !location)}
                             onClick={handlePlaceOrder}
                         >
-                            {isSubmitting ? "Processing..." : (
+                            {isSubmitting ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span>Processing...</span>
+                                </div>
+                            ) : (
                                 paymentMethod === 'CASH' ? "Place Order (Pay Cash)" : `Pay via ${onlineProvider}`
                             )}
                         </Button>
                     </SheetClose>
                 </SheetFooter>
+
 
                 <AnimatePresence>
                     {isSubmitting && (
@@ -341,7 +473,7 @@ export function CartSheet() {
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </SheetContent>
-        </Sheet>
+            </SheetContent >
+        </Sheet >
     )
 }

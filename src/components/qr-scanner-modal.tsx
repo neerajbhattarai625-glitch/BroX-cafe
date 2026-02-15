@@ -81,7 +81,18 @@ export function QRScannerModal({ isOpen, onClose, onScanSuccess }: QRScannerModa
 
             setCameraError(null)
 
+            // Check for Secure Context
+            if (!window.isSecureContext) {
+                setCameraError('Camera access requires a SECURE connection (HTTPS). Please ensure you are using https:// or testing on localhost.')
+                return
+            }
+
             try {
+                // Check if mediaDevices is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("Camera API not supported or blocked by browser.")
+                }
+
                 // Ensure stopped
                 if (scanner.isScanning) {
                     await scanner.stop()
@@ -105,10 +116,16 @@ export function QRScannerModal({ isOpen, onClose, onScanSuccess }: QRScannerModa
                         // ignore
                     }
                 )
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Camera Start Error:", err)
                 if (isMountedRef.current) {
-                    setCameraError('Camera access failed. Ensure you are on HTTPS or localhost.')
+                    let msg = "Camera access failed."
+                    if (err.name === 'NotAllowedError') msg = "Camera permission denied. Please enable it in browser settings."
+                    else if (err.name === 'NotFoundError') msg = "No camera found on this device."
+                    else if (!window.isSecureContext) msg = "Camera requires HTTPS. Please use a secure connection."
+                    else msg = `Camera Error: ${err.message || 'Unknown error'}. Ensure no other app is using the camera.`
+
+                    setCameraError(msg)
                 }
             }
         })

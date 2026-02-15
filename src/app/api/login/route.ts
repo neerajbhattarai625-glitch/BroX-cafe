@@ -48,11 +48,29 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Table not found" }, { status: 404 });
         }
 
-        // CRITICAL: Check if table is locked to a different device
+        // 1. Check if CURRENT table is locked to a DIFFERENT device
         if (table.status === 'OPEN' && table.deviceId && table.deviceId !== deviceId) {
             return NextResponse.json({
                 error: "Table is currently in use by another device",
                 code: "TABLE_IN_USE"
+            }, { status: 403 });
+        }
+
+        // 2. Check if THIS device is already at a DIFFERENT table
+        const existingTable = await prisma.table.findFirst({
+            where: {
+                deviceId: deviceId,
+                status: 'OPEN',
+                id: { not: tableId }
+            }
+        });
+
+        if (existingTable) {
+            return NextResponse.json({
+                error: `You already have an active session at Table ${existingTable.number}. Please finish that session first.`,
+                code: "DEVICE_ALREADY_IN_SESSION",
+                existingTableId: existingTable.id,
+                existingTableNumber: existingTable.number
             }, { status: 403 });
         }
 
@@ -105,7 +123,7 @@ export async function POST(request: Request) {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             path: "/",
-            maxAge: 60 * 60 * 2 // 2 hours
+            maxAge: 60 * 60 * 6 // 6 hours
         });
         return response;
     }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut } from "lucide-react"
+import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, ShieldAlert, MapPin, Volume2 } from "lucide-react"
 import type { ServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
 import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
@@ -22,13 +22,23 @@ function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStat
         <Card className={cn(
             "border-l-4 shadow-sm hover:shadow-md transition-shadow",
             order.status === "PENDING" ? "border-l-primary" : "border-l-green-500",
-            order.paymentMethod === 'ONLINE' && order.paymentStatus === 'PENDING' && "ring-2 ring-purple-500/20"
+            order.paymentMethod === 'ONLINE' && order.paymentStatus === 'PENDING' && "ring-2 ring-purple-500/20",
+            order.isOnlineOrder && "bg-blue-50/30"
         )}>
             <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-lg">Table {order.tableNo}</CardTitle>
-                        <CardDescription className="flex items-center gap-1 mt-1">
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg">
+                                {order.tableNo === 'ONLINE' ? 'Online Guest' : `Table ${order.tableNo}`}
+                            </CardTitle>
+                            {order.isOnlineOrder && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-[10px] font-bold">
+                                    ONLINE
+                                </Badge>
+                            )}
+                        </div>
+                        <CardDescription className="flex items-center gap-2 mt-1">
                             <Clock className="h-3 w-3" /> {order.time}
                         </CardDescription>
                     </div>
@@ -41,6 +51,26 @@ function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStat
                         </Badge>
                     </div>
                 </div>
+
+                {order.deviceName && (
+                    <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground font-medium">
+                        <ShieldAlert className="h-3 w-3" />
+                        <span className="truncate max-w-[150px]">{order.deviceName}</span>
+                    </div>
+                )}
+                {order.location && (
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                        <MapPin className="h-3 w-3" />
+                        <a
+                            href={`https://www.google.com/maps?q=${order.location}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                        >
+                            View Location
+                        </a>
+                    </div>
+                )}
             </CardHeader>
             <CardContent className="pb-3 text-sm">
                 <ul className="space-y-1">
@@ -92,6 +122,8 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
+    const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
+    const [prevRequestCount, setPrevRequestCount] = useState<number | null>(null)
     // Initialize with prop, no loading state needed for user
     const [user, setUser] = useState<{ role: string } | null>(initialUser)
 
@@ -101,9 +133,20 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
 
     const router = useRouter()
 
+    useEffect(() => {
+        if (!user) {
+            router.push('/login')
+        }
+    }, [user, router])
+
     const handleLogout = async () => {
         await fetch('/api/logout', { method: 'POST' })
         router.push('/login')
+    }
+
+    const testSound = () => {
+        const audio = new Audio("/sounds/notification.mp3");
+        audio.play().catch(e => alert("Audio playback failed. Please ensure you have interacted with the page or check browser settings."));
     }
 
     const fetchData = async () => {
@@ -114,8 +157,27 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 fetch('/api/reviews')
             ])
 
-            if (orderRes.ok) setOrders(await orderRes.json())
-            if (reqRes.ok) setRequests(await reqRes.json())
+            if (orderRes.ok) {
+                const newOrders = await orderRes.json();
+                // Play sound if new order arrived
+                if (prevOrderCount !== null && newOrders.length > prevOrderCount) {
+                    const audio = new Audio("/sounds/notification.mp3");
+                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                }
+                setOrders(newOrders);
+                setPrevOrderCount(newOrders.length);
+            }
+
+            if (reqRes.ok) {
+                const newReqs = await reqRes.json();
+                // Play sound if new service request arrived
+                if (prevRequestCount !== null && newReqs.length > prevRequestCount) {
+                    const audio = new Audio("/sounds/notification.mp3");
+                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                }
+                setRequests(newReqs);
+                setPrevRequestCount(newReqs.length);
+            }
             if (revRes.ok) setReviews(await revRes.json())
         } catch (error) {
             console.error("Failed to fetch data", error)
@@ -170,6 +232,9 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
+                    <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
+                        <Volume2 className="h-4 w-4" />
+                    </Button>
                     <Button variant="outline" className="gap-2 bg-background">
                         <Bell className="h-4 w-4" />
                         <span className="hidden md:inline">Requests</span>

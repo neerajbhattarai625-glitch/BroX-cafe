@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 export async function POST() {
     const response = NextResponse.json({ success: true })
-    response.cookies.delete("auth_token")
-    response.cookies.delete("table_session")
+
+    // Explicitly clear by setting expiry to past
+    response.cookies.set("auth_token", "", { path: "/", expires: new Date(0) })
+    response.cookies.set("table_session", "", { path: "/", expires: new Date(0) })
+
     return response
 }

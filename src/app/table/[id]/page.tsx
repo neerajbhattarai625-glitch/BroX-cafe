@@ -56,6 +56,8 @@ export default function TablePage({ params }: { params: Promise<{ id: string }> 
 
                     if (errorData.code === 'TABLE_IN_USE') {
                         setBlocked("This table is currently in use by another device. Please wait or contact staff.");
+                    } else if (errorData.code === 'DEVICE_ALREADY_IN_SESSION') {
+                        setBlocked(errorData.error);
                     } else {
                         // Check if we ALREADY have a valid session for THIS table (fallback)
                         const vRes = await fetch('/api/login');
