@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, Users, CheckCircle2, Play, LogOut, Volume2, Bell, Table as TableIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordModal } from "@/components/change-password-modal"
-import type { Order, ServiceRequest, Table } from "@/lib/types"
+import type { Order, ServiceRequest, Table, OrderStatus } from "@/lib/types"
 import { toast } from "sonner"
 
 export function StaffClient() {
@@ -73,7 +73,7 @@ export function StaffClient() {
         router.push('/login')
     }
 
-    const handleOrderAction = async (id: string, status: string) => {
+    const handleOrderAction = async (id: string, status: OrderStatus) => {
         setOrders(orders.map(o => o.id === id ? { ...o, status } : o))
         try {
             await fetch('/api/orders', {
@@ -193,8 +193,8 @@ export function StaffClient() {
                                         <CardContent className="space-y-2">
                                             {order.items.map((item, idx) => (
                                                 <div key={idx} className="flex justify-between text-sm">
-                                                    <span>{item.name} x{item.quantity}</span>
-                                                    <span className="font-medium">₹{item.price * item.quantity}</span>
+                                                    <span>{item.name} x{item.qty}</span>
+                                                    <span className="font-medium">₹{(item.qty * 100)}</span>
                                                 </div>
                                             ))}
                                         </CardContent>
@@ -232,7 +232,7 @@ export function StaffClient() {
                                         <CardContent className="space-y-2">
                                             {order.items.map((item, idx) => (
                                                 <div key={idx} className="flex justify-between text-sm">
-                                                    <span>{item.name} x{item.quantity}</span>
+                                                    <span>{item.name} x{item.qty}</span>
                                                 </div>
                                             ))}
                                         </CardContent>

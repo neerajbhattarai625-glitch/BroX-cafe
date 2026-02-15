@@ -39,3 +39,12 @@ export type Review = {
     comment: string;
     time: string;
 };
+
+export type Table = {
+    id: string;
+    number: string;
+    status: string;
+    currentSessionId?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+};
