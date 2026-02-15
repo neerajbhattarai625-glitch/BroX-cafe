@@ -25,7 +25,23 @@ export default function LoginPage() {
             })
 
             if (res.ok) {
-                router.push("/dashboard")
+                const data = await res.json()
+
+                // Redirect based on role
+                if (data.role === "ADMIN") {
+                    router.push("/dashboard")
+                } else if (data.role === "COUNTER") {
+                    router.push("/counter")
+                } else if (data.role === "STAFF") {
+                    // Check if it's chef or staff based on username
+                    if (username === "chef") {
+                        router.push("/chef")
+                    } else {
+                        router.push("/staff")
+                    }
+                } else {
+                    router.push("/dashboard")
+                }
             } else {
                 setError("Invalid credentials")
             }

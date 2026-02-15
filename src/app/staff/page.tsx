@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { ChefClient } from "./chef-client";
+import { StaffClient } from "./staff-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChefPage() {
+export default async function StaffPage() {
     const cookieStore = await cookies();
     const authCookie = cookieStore.get("auth_token");
 
@@ -15,13 +15,11 @@ export default async function ChefPage() {
 
     let user = null;
 
-    // Basic Auth Check (Admins and Chef can access)
-    if (authCookie.value === "admin_token") {
-        user = { role: "ADMIN" };
-    } else if (authCookie.value === "chef_token") {
+    // Auth Check for Staff role
+    if (authCookie.value === "staff_token") {
         user = { role: "STAFF" };
-    } else if (authCookie.value === "staff_token") {
-        user = { role: "STAFF" };
+    } else if (authCookie.value === "admin_token") {
+        user = { role: "ADMIN" }; // Admins can also access
     } else {
         // DB Check
         const dbUser = await prisma.user.findUnique({
@@ -37,5 +35,5 @@ export default async function ChefPage() {
         redirect("/login");
     }
 
-    return <ChefClient />
+    return <StaffClient />
 }
