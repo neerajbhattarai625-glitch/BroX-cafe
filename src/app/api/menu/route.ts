@@ -7,7 +7,11 @@ export async function GET() {
         const menuItems = await prisma.menuItem.findMany({
             include: { category: true }
         });
-        return NextResponse.json(menuItems);
+        return NextResponse.json(menuItems, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+        });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch menu items' }, { status: 500 });
     }

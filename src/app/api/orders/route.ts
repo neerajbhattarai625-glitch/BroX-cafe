@@ -4,8 +4,17 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
     try {
+        const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+
         const orders = await prisma.order.findMany({
-            orderBy: { createdAt: 'desc' }
+            where: {
+                OR: [
+                    { paymentStatus: { not: 'PAID' } },
+                    { createdAt: { gte: twelveHoursAgo } }
+                ]
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 50 // Limit to latest 50 for performance
         });
 
         // Parse items JSON string back to object
