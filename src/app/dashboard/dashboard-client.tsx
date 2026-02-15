@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -130,6 +130,21 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     // Loading state only for data fetching, but user is already known
     // We can show a skeleton for data, but the LAYOUT (tabs) will be correct immediately
     const [dataLoading, setDataLoading] = useState(true)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+
+    useEffect(() => {
+        audioRef.current = new Audio("/sounds/notification.mp3")
+        audioRef.current.load()
+    }, [])
+
+    const playNotification = () => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch(e => {
+                console.warn("Audio playback delayed or blocked:", e)
+            })
+        }
+    }
 
     const router = useRouter()
 
@@ -145,8 +160,8 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     }
 
     const testSound = () => {
-        const audio = new Audio("/sounds/notification.mp3");
-        audio.play().catch(e => alert("Audio playback failed. Please ensure you have interacted with the page or check browser settings."));
+        playNotification()
+        alert("If you didn't hear a sound, please ensure your volume is up and you've allowed audio in your browser settings.")
     }
 
     const fetchData = async () => {
@@ -161,8 +176,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 const newOrders = await orderRes.json();
                 // Play sound if new order arrived
                 if (prevOrderCount !== null && newOrders.length > prevOrderCount) {
-                    const audio = new Audio("/sounds/notification.mp3");
-                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                    playNotification()
                 }
                 setOrders(newOrders);
                 setPrevOrderCount(newOrders.length);
@@ -172,8 +186,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 const newReqs = await reqRes.json();
                 // Play sound if new service request arrived
                 if (prevRequestCount !== null && newReqs.length > prevRequestCount) {
-                    const audio = new Audio("/sounds/notification.mp3");
-                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                    playNotification()
                 }
                 setRequests(newReqs);
                 setPrevRequestCount(newReqs.length);

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,22 @@ interface CounterClientProps {
 export function CounterClient({ initialUser }: CounterClientProps) {
     const [orders, setOrders] = useState<any[]>([]) // Using any for now to bypass strict type check on new fields till restart
     const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+
+    useEffect(() => {
+        audioRef.current = new Audio("/sounds/notification.mp3")
+        audioRef.current.load()
+    }, [])
+
+    const playNotification = () => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch(e => {
+                console.warn("Audio playback delayed or blocked:", e)
+            })
+        }
+    }
+
     const router = useRouter()
 
     const handleLogout = async () => {
@@ -25,8 +41,8 @@ export function CounterClient({ initialUser }: CounterClientProps) {
     }
 
     const testSound = () => {
-        const audio = new Audio("/sounds/notification.mp3");
-        audio.play().catch(e => alert("Audio playback failed. Please ensure you have interacted with the page or check browser settings."));
+        playNotification()
+        alert("If you didn't hear a sound, please ensure your volume is up and you've allowed audio in your browser settings.")
     }
 
     const fetchData = async () => {
@@ -36,8 +52,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                 const data = await res.json()
                 // Play sound if new order arrived
                 if (prevOrderCount !== null && data.length > prevOrderCount) {
-                    const audio = new Audio("/sounds/notification.mp3");
-                    audio.play().catch(e => console.log("Audio play blocked - needs interaction", e));
+                    playNotification()
                 }
                 setOrders(data)
                 setPrevOrderCount(data.length)
