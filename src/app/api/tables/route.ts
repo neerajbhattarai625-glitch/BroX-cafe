@@ -10,7 +10,8 @@ export async function GET() {
         });
         return NextResponse.json(tables);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to fetch tables" }, { status: 500 });
+        console.error("GET TABLES ERROR:", error);
+        return NextResponse.json({ error: "Failed to fetch tables", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
 }
 
@@ -31,8 +32,13 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(newTable);
-    } catch (error) {
-        return NextResponse.json({ error: "Failed to create table" }, { status: 500 });
+    } catch (error: any) {
+        console.error("CREATE TABLE ERROR:", error);
+        // Better error for unique constraints
+        if (error.code === 'P2002') {
+            return NextResponse.json({ error: "Table number already exists" }, { status: 400 });
+        }
+        return NextResponse.json({ error: "Failed to create table", details: error.message }, { status: 500 });
     }
 }
 

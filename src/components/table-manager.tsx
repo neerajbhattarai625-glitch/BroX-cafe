@@ -23,8 +23,10 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
     const [newTableNo, setNewTableNo] = useState("")
     const [qrUrl, setQrUrl] = useState<string | null>(null)
     const [selectedTable, setSelectedTable] = useState<Table | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     const fetchTables = async () => {
+        setIsLoading(true)
         try {
             const res = await fetch('/api/tables')
             if (res.ok) {
@@ -35,6 +37,8 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
             }
         } catch (error) {
             console.error("Error fetching tables:", error)
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -117,7 +121,18 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {tables.map(table => (
+                {isLoading ? (
+                    <div className="col-span-full py-20 text-center">
+                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading tables...</p>
+                    </div>
+                ) : tables.length === 0 ? (
+                    <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl">
+                        <AlertTriangle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-1">No Tables Found</h3>
+                        <p className="text-muted-foreground">Add your first table to get started.</p>
+                    </div>
+                ) : tables.map(table => (
                     <Card key={table.id}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xl text-center">Table {table.number}</CardTitle>
