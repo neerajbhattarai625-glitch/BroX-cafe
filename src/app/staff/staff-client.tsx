@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2, Bell } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Clock, Users, CheckCircle2, Play, LogOut, Volume2, Bell, Table as TableIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordModal } from "@/components/change-password-modal"
-import type { Order, ServiceRequest } from "@/lib/types"
+import type { Order, ServiceRequest, Table } from "@/lib/types"
 import { toast } from "sonner"
 
 export function StaffClient() {
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
+    const [tables, setTables] = useState<Table[]>([])
     const [prevPendingCount, setPrevPendingCount] = useState<number | null>(null)
     const seenRequestIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
@@ -25,149 +27,244 @@ export function StaffClient() {
         audioRef.current.load()
     }, [])
 
-    const playNotification = (msg = "New Order in Kitchen!") => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = 0
-            audioRef.current.play().catch(e => console.warn("Audio blocked:", e))
-        }
-        toast.info(msg, { position: "top-center" })
-    }
-
-    const fetchData = async () => {
-        try {
-            const [ordersRes, requestsRes] = await Promise.all([
-                fetch('/api/orders'),
-                fetch('/api/requests')
-            ])
-
-            if (ordersRes.ok) {
-                const data = await ordersRes.json()
-                const pendingOrders = data.filter((o: Order) => o.status === 'PENDING')
-
-                if (!isFirstLoad.current && prevPendingCount !== null && pendingOrders.length > prevPendingCount) {
-                    playNotification("New Order!")
-                }
-
-                setOrders(data)
-                setPrevPendingCount(pendingOrders.length)
-            }
-
-            if (requestsRes.ok) {
-                const newReqs: ServiceRequest[] = await requestsRes.json();
-
-                if (!isFirstLoad.current) {
-                    const hasNewReq = newReqs.some(r => r.status === 'PENDING' && !seenRequestIds.current.has(r.id));
-                    if (hasNewReq) playNotification("New Service Request / Voice Order!");
-                }
-
-                newReqs.forEach(r => seenRequestIds.current.add(r.id));
-                setRequests(newReqs);
-            }
-
-            isFirstLoad.current = false
-        } catch (error) {
-            console.error("Failed to fetch data", error)
-        }
-    }
-
     useEffect(() => {
         fetchData()
-        const interval = setInterval(fetchData, 10000)
+        const interval = setInterval(fetchData, 3000)
         return () => clearInterval(interval)
     }, [])
 
-    const updateStatus = async (orderId: string, newStatus: string) => {
+    const fetchData = async () => {
         try {
-            const res = await fetch('/api/orders', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: orderId, status: newStatus })
-            })
-            if (res.ok) {
-                toast.success(`Order marked as ${newStatus.toLowerCase()}`)
-                fetchData()
+            const [ordersRes, requestsRes, tablesRes] = await Promise.all([
+                fetch('/api/orders'),
+                fetch('/api/requests'),
+                fetch('/api/tables')
+            ])
+            const ordersData = await ordersRes.json()
+            const requestsData = await requestsRes.json()
+            const tablesData = await tablesRes.json()
+
+            setOrders(ordersData)
+            setRequests(requestsData)
+            setTables(tablesData)
+
+            // Notification logic
+            const currentPending = ordersData.filter((o: Order) => o.status === 'PENDING').length
+            if (!isFirstLoad.current && prevPendingCount !== null && currentPending > prevPendingCount) {
+                playNotification()
+                toast.success("New order received!")
             }
+            setPrevPendingCount(currentPending)
+            isFirstLoad.current = false
         } catch (error) {
-            toast.error("Failed to update order status")
+            console.error('Failed to fetch data:', error)
+        }
+    }
+
+    const playNotification = () => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch(e => console.error('Audio play failed:', e))
+        }
+    }
+
+    const handleLogout = () => {
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+        router.push('/login')
+    }
+
+    const handleOrderAction = async (id: string, status: string) => {
+        setOrders(orders.map(o => o.id === id ? { ...o, status } : o))
+        try {
+            await fetch('/api/orders', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status })
+            })
+            toast.success(`Order ${status.toLowerCase()}`)
+        } catch (e) {
+            console.error(e)
+            toast.error("Failed to update order")
         }
     }
 
     const handleRequestAction = async (id: string, action: 'COMPLETED' | 'CANCELLED') => {
-        setRequests(requests.map(r => r.id === id ? { ...r, status: action } : r));
+        setRequests(requests.map(r => r.id === id ? { ...r, status: action } : r))
         try {
             await fetch('/api/requests', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status: action })
-            });
+            })
+            toast.success(`Request ${action.toLowerCase()}`)
         } catch (e) {
-            console.error(e);
+            console.error(e)
         }
     }
 
-    const handleLogout = async () => {
-        await fetch('/api/logout', { method: 'POST' })
-        router.push('/login')
+    const handleTableAction = async (tableId: string, action: 'OPEN' | 'CLOSED') => {
+        try {
+            const res = await fetch('/api/tables', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tableId, status: action })
+            })
+            if (res.ok) {
+                fetchData()
+                toast.success(`Table ${action.toLowerCase()}`)
+            }
+        } catch (e) {
+            console.error(e)
+            toast.error("Failed to update table")
+        }
     }
 
     const pendingOrders = orders.filter(o => o.status === 'PENDING')
     const preparingOrders = orders.filter(o => o.status === 'PREPARING')
-    const uncompletedRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VOICE_ORDER');
+    const uncompletedRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VOICE_ORDER')
+    const openTables = tables.filter(t => t.status === 'OPEN')
+    const closedTables = tables.filter(t => t.status === 'CLOSED')
 
     return (
-        <div className="min-h-screen bg-background p-6 font-sans text-foreground">
-            <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
+        <div className="min-h-screen bg-background p-4 md:p-6 font-sans text-foreground">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4 max-w-7xl mx-auto">
                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-200">
-                        <ChefHat className="h-7 w-7" />
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white shadow-lg">
+                        <Users className="h-5 w-5 md:h-7 md:w-7" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">Staff Dashboard</h1>
-                        <p className="text-muted-foreground font-medium">Manage orders and service requests</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Staff Dashboard</h1>
+                        <p className="text-sm md:text-base text-muted-foreground font-medium">Manage orders and service requests</p>
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3 flex-wrap">
                     <ChangePasswordModal />
                     <ThemeToggle />
-                    <Button variant="outline" size="icon" title={`${uncompletedRequests.length} Active Requests`} className="rounded-xl border-neutral-200 dark:border-neutral-800 relative">
-                        <Bell className="h-5 w-5" />
-                        {uncompletedRequests.length > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />}
+                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl">
+                        <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
-                        <Volume2 className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50">
-                        <LogOut className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600">
+                        <LogOut className="h-4 w-4 md:h-5 md:w-5" />
                     </Button>
                 </div>
             </div>
 
-            {/* Service Requests Section (Collapsible or floating? Let's put it at top if active) */}
-            {uncompletedRequests.length > 0 && (
-                <div className="max-w-7xl mx-auto mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                    <h3 className="font-bold text-yellow-800 mb-4 flex items-center gap-2">
-                        <Bell className="h-4 w-4" /> Service Requests & Voice Orders
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Tabs defaultValue="orders" className="max-w-7xl mx-auto">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                    <TabsTrigger value="orders" className="gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span className="hidden sm:inline">Orders</span>
+                        {pendingOrders.length > 0 && <Badge variant="destructive" className="ml-1 px-1 rounded-full">{pendingOrders.length}</Badge>}
+                    </TabsTrigger>
+                    <TabsTrigger value="requests" className="gap-2">
+                        <Bell className="h-4 w-4" />
+                        <span className="hidden sm:inline">Requests</span>
+                        {uncompletedRequests.length > 0 && <Badge variant="destructive" className="ml-1 px-1 rounded-full">{uncompletedRequests.length}</Badge>}
+                    </TabsTrigger>
+                    <TabsTrigger value="tables" className="gap-2">
+                        <TableIcon className="h-4 w-4" />
+                        <span className="hidden sm:inline">Tables</span>
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="orders" className="space-y-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                        {/* Pending Orders */}
+                        <div className="space-y-4">
+                            <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
+                                New Orders
+                                <Badge variant="secondary" className="px-2 py-0.5">{pendingOrders.length}</Badge>
+                            </h2>
+                            {pendingOrders.length === 0 ? (
+                                <div className="bg-card border-2 border-dashed rounded-xl p-8 md:p-12 text-center text-muted-foreground">
+                                    <p>No pending orders</p>
+                                </div>
+                            ) : (
+                                pendingOrders.map(order => (
+                                    <Card key={order.id} className="border-l-4 border-l-orange-500">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex justify-between items-start">
+                                                <CardTitle className="text-base md:text-lg">
+                                                    {order.tableNo ? `Table ${order.tableNo}` : 'Walk-in'}
+                                                </CardTitle>
+                                                <span className="text-xs md:text-sm text-muted-foreground">{order.time}</span>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between text-sm">
+                                                    <span>{item.name} x{item.quantity}</span>
+                                                    <span className="font-medium">₹{item.price * item.quantity}</span>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                        <CardFooter className="gap-2">
+                                            <Button size="sm" onClick={() => handleOrderAction(order.id, 'PREPARING')} className="flex-1">
+                                                <Play className="h-4 w-4 mr-1" /> Start
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Preparing Orders */}
+                        <div className="space-y-4">
+                            <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
+                                In Preparation
+                                <Badge variant="secondary" className="px-2 py-0.5">{preparingOrders.length}</Badge>
+                            </h2>
+                            {preparingOrders.length === 0 ? (
+                                <div className="bg-card border-2 border-dashed rounded-xl p-8 md:p-12 text-center text-muted-foreground">
+                                    <p>No orders in preparation</p>
+                                </div>
+                            ) : (
+                                preparingOrders.map(order => (
+                                    <Card key={order.id} className="border-l-4 border-l-blue-500">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex justify-between items-start">
+                                                <CardTitle className="text-base md:text-lg">
+                                                    {order.tableNo ? `Table ${order.tableNo}` : 'Walk-in'}
+                                                </CardTitle>
+                                                <span className="text-xs md:text-sm text-muted-foreground">{order.time}</span>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between text-sm">
+                                                    <span>{item.name} x{item.quantity}</span>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                        <CardFooter>
+                                            <Button size="sm" onClick={() => handleOrderAction(order.id, 'READY')} className="w-full bg-green-600 hover:bg-green-700">
+                                                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Ready
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="requests" className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {uncompletedRequests.map(req => (
-                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm bg-white">
+                            <Card key={req.id} className="border-l-4 border-l-orange-500">
                                 <CardHeader className="pb-2 p-4">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-sm font-bold">Table {req.tableNo}</CardTitle>
                                         <span className="text-xs text-muted-foreground">{req.time}</span>
                                     </div>
-                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="mt-1">
+                                    <Badge variant="default" className="mt-1 w-fit">
                                         {req.type.replace('_', ' ')}
                                     </Badge>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
-                                    {req.type === 'VOICE_ORDER' && req.audioData && (
+                                    {req.audioData && (
                                         <div className="flex flex-col gap-2 mt-2">
-                                            <audio
-                                                controls
-                                                src={req.audioData}
-                                                className="w-full h-8"
-                                            />
+                                            <audio controls src={req.audioData} className="w-full h-8" />
                                             <p className="text-[10px] text-center text-muted-foreground">Voice Message</p>
                                         </div>
                                     )}
@@ -178,127 +275,73 @@ export function StaffClient() {
                                 </CardContent>
                             </Card>
                         ))}
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-                {/* Column: PENDING */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-neutral-800">
-                            New Orders
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-2.5 py-0.5 rounded-full">
-                                {pendingOrders.length}
-                            </Badge>
-                        </h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        {pendingOrders.length === 0 && (
-                            <div className="bg-white border-2 border-dashed border-neutral-200 rounded-2xl p-12 text-center text-neutral-400">
-                                <ChefHat className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                <p className="font-medium text-lg">No pending orders</p>
+                        {uncompletedRequests.length === 0 && (
+                            <div className="col-span-full bg-card border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
+                                <p>No active requests</p>
                             </div>
                         )}
-                        {pendingOrders.map(order => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
-                                actionLabel="Start Preparing"
-                                actionIcon={<Play className="h-4 w-4" />}
-                                onAction={() => updateStatus(order.id, 'PREPARING')}
-                                colorClass="border-orange-200"
-                                badgeClass="bg-orange-50 text-orange-600"
-                            />
-                        ))}
                     </div>
-                </div>
+                </TabsContent>
 
-                {/* Column: PREPARING */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-neutral-800">
-                            In Preparation
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none px-2.5 py-0.5 rounded-full">
-                                {preparingOrders.length}
-                            </Badge>
-                        </h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        {preparingOrders.length === 0 && (
-                            <div className="bg-white border-2 border-dashed border-neutral-200 rounded-2xl p-12 text-center text-neutral-400">
-                                <Clock className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                <p className="font-medium text-lg">Nothing is cooking yet</p>
+                <TabsContent value="tables" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Open Tables */}
+                        <div>
+                            <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2">
+                                Open Tables
+                                <Badge variant="secondary" className="px-2 py-0.5">{openTables.length}</Badge>
+                            </h2>
+                            <div className="space-y-3">
+                                {openTables.map(table => (
+                                    <Card key={table.id}>
+                                        <CardHeader className="pb-3">
+                                            <div className="flex justify-between items-center">
+                                                <CardTitle className="text-base">Table {table.number}</CardTitle>
+                                                <Badge variant="default" className="bg-green-600">Open</Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button size="sm" variant="outline" onClick={() => handleTableAction(table.id, 'CLOSED')} className="w-full">
+                                                Close Table
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                                {openTables.length === 0 && (
+                                    <div className="bg-card border-2 border-dashed rounded-xl p-8 text-center text-muted-foreground">
+                                        <p>No open tables</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {preparingOrders.map(order => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
-                                actionLabel="Ready for Pickup"
-                                actionIcon={<CheckCircle2 className="h-4 w-4" />}
-                                onAction={() => updateStatus(order.id, 'READY')}
-                                colorClass="border-blue-200"
-                                badgeClass="bg-blue-50 text-blue-600"
-                                variant="blue"
-                            />
-                        ))}
+                        </div>
+
+                        {/* Closed Tables */}
+                        <div>
+                            <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2">
+                                Closed Tables
+                                <Badge variant="secondary" className="px-2 py-0.5">{closedTables.length}</Badge>
+                            </h2>
+                            <div className="space-y-3">
+                                {closedTables.slice(0, 10).map(table => (
+                                    <Card key={table.id}>
+                                        <CardHeader className="pb-3">
+                                            <div className="flex justify-between items-center">
+                                                <CardTitle className="text-base">Table {table.number}</CardTitle>
+                                                <Badge variant="secondary">Closed</Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button size="sm" onClick={() => handleTableAction(table.id, 'OPEN')} className="w-full">
+                                                Open Table
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
         </div>
-    )
-}
-
-function OrderCard({ order, actionLabel, actionIcon, onAction, colorClass, badgeClass, variant = "orange" }: any) {
-    return (
-        <Card className={`overflow-hidden border-2 shadow-sm rounded-2xl transition-all hover:shadow-md ${colorClass}`}>
-            <CardHeader className="pb-3 border-b bg-neutral-50/50">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-lg font-bold">
-                            {order.isOnlineOrder ? 'Online Guest' : `Table ${order.tableNo}`}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-1.5 mt-0.5 font-medium text-neutral-500">
-                            <Clock className="h-3.5 w-3.5" /> {order.time}
-                        </CardDescription>
-                    </div>
-                    <Badge className={`rounded-full border-none font-bold ${badgeClass}`}>
-                        {order.status}
-                    </Badge>
-                </div>
-                {order.isOnlineOrder && order.location && (
-                    <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg w-fit">
-                        Location: {order.location}
-                    </div>
-                )}
-            </CardHeader>
-            <CardContent className="pt-4 pb-4">
-                <ul className="space-y-3">
-                    {order.items.map((item: any, i: number) => (
-                        <li key={i} className="flex justify-between items-center bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
-                            <span className="font-semibold text-neutral-800">{item.name}</span>
-                            <span className="h-8 w-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center text-sm font-bold">
-                                {item.qty}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            </CardContent>
-            <CardFooter className="bg-neutral-50/50 pt-3 pb-3 border-t">
-                <Button
-                    className={`w-full h-12 rounded-xl font-bold gap-2 text-white shadow-lg transition-transform active:scale-[0.98] ${variant === "blue"
-                        ? "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
-                        : "bg-orange-600 hover:bg-orange-700 shadow-orange-100"
-                        }`}
-                    onClick={onAction}
-                >
-                    {actionIcon}
-                    {actionLabel}
-                </Button>
-            </CardFooter>
-        </Card>
     )
 }

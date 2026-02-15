@@ -110,6 +110,7 @@ model DeviceStats {
   deviceId    String   @unique
   totalVisits Int      @default(0)
   totalSpend  Float    @default(0)
+  tier        String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
   lastVisit   DateTime @default(now())
   badges      String?  // JSON string of badges e.g. ["Momo Master", "Early Bird"]
   createdAt   DateTime @default(now())
