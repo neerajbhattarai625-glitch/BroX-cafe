@@ -7,7 +7,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' }
         });
 
-        const formattedReviews = reviews.map((rev: any) => ({
+        const formattedReviews = reviews.map((rev) => ({
             ...rev,
             time: rev.createdAt.toLocaleDateString()
         }));

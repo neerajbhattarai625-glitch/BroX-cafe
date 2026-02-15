@@ -32,13 +32,15 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(newTable);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("CREATE TABLE ERROR:", error);
         // Better error for unique constraints
-        if (error.code === 'P2002') {
+        const errorCode = typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code : undefined
+        const message = error instanceof Error ? error.message : "Failed to create table"
+        if (errorCode === 'P2002') {
             return NextResponse.json({ error: "Table number already exists" }, { status: 400 });
         }
-        return NextResponse.json({ error: "Failed to create table", details: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Failed to create table", details: message }, { status: 500 });
     }
 }
 
@@ -47,7 +49,13 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { id, status, number } = body;
 
-        const dataToUpdate: any = {};
+        const dataToUpdate: {
+            status?: string;
+            currentSessionId?: string | null;
+            deviceId?: string | null;
+            sessionStartedAt?: Date | null;
+            number?: string;
+        } = {};
         if (status) {
             dataToUpdate.status = status;
             // If closing the table, clear the session and device lock

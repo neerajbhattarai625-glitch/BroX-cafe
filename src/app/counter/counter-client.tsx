@@ -16,7 +16,7 @@ interface CounterClientProps {
 }
 
 export function CounterClient({ initialUser }: CounterClientProps) {
-    const [orders, setOrders] = useState<any[]>([]) // Using any for now to bypass strict type check on new fields till restart
+    const [orders, setOrders] = useState<Order[]>([])
     const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -74,9 +74,12 @@ export function CounterClient({ initialUser }: CounterClientProps) {
     }
 
     useEffect(() => {
-        fetchData()
+        const timeout = setTimeout(fetchData, 0)
         const interval = setInterval(fetchData, 10000)
-        return () => clearInterval(interval)
+        return () => {
+            clearTimeout(timeout)
+            clearInterval(interval)
+        }
     }, [])
 
     const confirmPayment = async (orderId: string) => {
@@ -154,7 +157,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                                 </CardHeader>
                                 <CardContent>
                                     <ul className="text-sm space-y-1">
-                                        {order.items.map((item: any, i: number) => (
+                                        {order.items.map((item, i) => (
                                             <li key={i}>{item.qty}x {item.name}</li>
                                         ))}
                                     </ul>

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { usePathname } from "next/navigation";
 import { Plus_Jakarta_Sans, Playfair_Display, Dancing_Script, Oswald } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
-import { OrderTracker } from "@/components/order-tracker";
-import { SmoothScroller } from "@/components/smooth-scroller";
+import { ClientLayoutWrapper } from "@/components/client-layout-wrapper";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -38,7 +36,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <LayoutContent>{children}</LayoutContent>
+          <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>
@@ -46,22 +44,3 @@ export default function RootLayout({
   );
 }
 
-function LayoutContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isAdminPath = pathname?.startsWith('/dashboard') || pathname?.startsWith('/counter');
-
-  if (isAdminPath) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <SmoothScroller>
-      <OrderTracker />
-      {children}
-    </SmoothScroller>
-  );
-}

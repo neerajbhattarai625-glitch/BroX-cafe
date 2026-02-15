@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 require('dotenv').config()
 const { PrismaClient } = require('@prisma/client')

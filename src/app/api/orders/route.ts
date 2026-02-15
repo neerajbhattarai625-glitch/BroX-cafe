@@ -18,9 +18,9 @@ export async function GET() {
         });
 
         // Parse items JSON string back to object
-        const formattedOrders = orders.map((order: any) => ({
+        const formattedOrders = orders.map((order) => ({
             ...order,
-            items: JSON.parse(order.items),
+            items: JSON.parse(order.items) as Array<{ name: string; qty: number }>,
             time: order.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
 
@@ -107,7 +107,7 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { id, status, paymentStatus } = body;
 
-        const dataToUpdate: any = {};
+        const dataToUpdate: { status?: string; paymentStatus?: string } = {};
         if (status) dataToUpdate.status = status;
         if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
 

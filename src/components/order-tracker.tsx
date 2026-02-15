@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useCartStore } from "@/lib/store"
 import { toast } from "sonner"
+import type { Order } from "@/lib/types"
 
 export function OrderTracker() {
     const { myOrderIds } = useCartStore()
@@ -15,11 +16,11 @@ export function OrderTracker() {
             try {
                 const res = await fetch('/api/orders')
                 if (!res.ok) return
-                const orders = await res.json()
+                const orders = (await res.json()) as Order[]
 
-                const myOrders = orders.filter((o: any) => myOrderIds.includes(o.id))
+                const myOrders = orders.filter((o) => myOrderIds.includes(o.id))
 
-                myOrders.forEach((order: any) => {
+                myOrders.forEach((order) => {
                     const prevStatus = previousStatuses.current[order.id]
 
                     if (prevStatus && prevStatus !== order.status) {

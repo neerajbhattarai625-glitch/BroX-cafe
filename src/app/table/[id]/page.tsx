@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOrCreateDeviceId } from "@/lib/device-fingerprint";
+
+type LoginErrorData = {
+    code?: string;
+    error?: string;
+    table?: { id?: string; number?: string };
+};
 
 export default function TablePage({ params }: { params: Promise<{ id: string }> }) {
     // Directly unwrap params with `use()` hook as per Next.js 15+ convention for async params
@@ -17,7 +23,7 @@ export default function TablePage({ params }: { params: Promise<{ id: string }> 
 
     const [verifying, setVerifying] = useState(true);
     const [blocked, setBlocked] = useState<string | null>(null);
-    const initialized = useState({ current: false })[0];
+    const initialized = useRef(false);
 
     const handleLogout = async () => {
         await fetch('/api/logout', { method: 'POST' });
@@ -41,7 +47,7 @@ export default function TablePage({ params }: { params: Promise<{ id: string }> 
                         body: JSON.stringify({ tableId: id, deviceId })
                     });
 
-                    let errorData: any = {};
+                    let errorData: LoginErrorData = {};
                     if (res.ok) {
                         const data = await res.json();
                         if (data.success && data.table) {
@@ -49,15 +55,15 @@ export default function TablePage({ params }: { params: Promise<{ id: string }> 
                             setVerifying(false);
                             return;
                         }
-                        errorData = data;
+                        errorData = data as LoginErrorData;
                     } else {
-                        errorData = await res.json().catch(() => ({}));
+                        errorData = (await res.json().catch(() => ({}))) as LoginErrorData;
                     }
 
                     if (errorData.code === 'TABLE_IN_USE') {
                         setBlocked("This table is currently in use by another device. Please wait or contact staff.");
                     } else if (errorData.code === 'DEVICE_ALREADY_IN_SESSION') {
-                        setBlocked(errorData.error);
+                        setBlocked(errorData.error || "A session is already active on this device.");
                     } else {
                         // Check if we ALREADY have a valid session for THIS table (fallback)
                         const vRes = await fetch('/api/login');

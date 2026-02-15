@@ -7,7 +7,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' }
         });
 
-        const formattedRequests = requests.map((req: any) => ({
+        const formattedRequests = requests.map((req) => ({
             ...req,
             time: req.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
@@ -49,7 +49,7 @@ export async function PATCH(request: Request) {
         if (body.tableId && body.status) {
             const { tableId, status } = body;
             // If opening, generate new session ID
-            const updateData: any = { status };
+            const updateData: { status: string; currentSessionId?: string } = { status };
             if (status === 'OPEN') {
                 updateData.currentSessionId = crypto.randomUUID();
             }

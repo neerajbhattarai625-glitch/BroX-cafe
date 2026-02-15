@@ -116,14 +116,15 @@ export function QRScannerModal({ isOpen, onClose, onScanSuccess }: QRScannerModa
                         // ignore
                     }
                 )
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Camera Start Error:", err)
                 if (isMountedRef.current) {
+                    const error = err as { name?: string; message?: string }
                     let msg = "Camera access failed."
-                    if (err.name === 'NotAllowedError') msg = "Camera permission denied. Please enable it in browser settings."
-                    else if (err.name === 'NotFoundError') msg = "No camera found on this device."
+                    if (error.name === 'NotAllowedError') msg = "Camera permission denied. Please enable it in browser settings."
+                    else if (error.name === 'NotFoundError') msg = "No camera found on this device."
                     else if (!window.isSecureContext) msg = "Camera requires HTTPS. Please use a secure connection."
-                    else msg = `Camera Error: ${err.message || 'Unknown error'}. Ensure no other app is using the camera.`
+                    else msg = `Camera Error: ${error.message || 'Unknown error'}. Ensure no other app is using the camera.`
 
                     setCameraError(msg)
                 }

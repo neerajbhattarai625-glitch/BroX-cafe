@@ -31,7 +31,7 @@ function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStat
                     <div>
                         <div className="flex items-center gap-2">
                             <CardTitle className="text-lg">
-                                {order.tableNo === 'ONLINE' ? 'Online Guest' : `Table ${order.tableNo}`}
+                                {order.isOnlineOrder ? 'Online Guest' : (order.tableNo ? `Table ${order.tableNo}` : 'Walk-in')}
                             </CardTitle>
                             {order.isOnlineOrder && (
                                 <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-[10px] font-bold">
@@ -123,8 +123,9 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
-    const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
-    const [prevRequestCount, setPrevRequestCount] = useState<number | null>(null)
+    const seenOrderIds = useRef<Set<string>>(new Set())
+    const seenRequestIds = useRef<Set<string>>(new Set())
+    const isFirstLoad = useRef(true)
     // Initialize with prop, no loading state needed for user
     const [user, setUser] = useState<{ role: string } | null>(initialUser)
 
@@ -184,25 +185,35 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             ])
 
             if (orderRes.ok) {
-                const newOrders = await orderRes.json();
-                // Play sound if new order arrived
-                if (prevOrderCount !== null && newOrders.length > prevOrderCount) {
-                    playNotification()
+                const newOrders: Order[] = await orderRes.json();
+
+                // Play sound for brand new orders only
+                if (!isFirstLoad.current) {
+                    const hasNewOrder = newOrders.some(o => o.status === 'PENDING' && !seenOrderIds.current.has(o.id));
+                    if (hasNewOrder) playNotification();
                 }
+
+                // Update seen IDs
+                newOrders.forEach(o => seenOrderIds.current.add(o.id));
                 setOrders(newOrders);
-                setPrevOrderCount(newOrders.length);
             }
 
             if (reqRes.ok) {
-                const newReqs = await reqRes.json();
-                // Play sound if new service request arrived
-                if (prevRequestCount !== null && newReqs.length > prevRequestCount) {
-                    playNotification()
+                const newReqs: ServiceRequest[] = await reqRes.json();
+
+                // Play sound for brand new service requests
+                if (!isFirstLoad.current) {
+                    const hasNewReq = newReqs.some(r => r.status === 'PENDING' && !seenRequestIds.current.has(r.id));
+                    if (hasNewReq) playNotification();
                 }
+
+                // Update seen IDs
+                newReqs.forEach(r => seenRequestIds.current.add(r.id));
                 setRequests(newReqs);
-                setPrevRequestCount(newReqs.length);
             }
             if (revRes.ok) setReviews(await revRes.json())
+
+            isFirstLoad.current = false;
         } catch (error) {
             console.error("Failed to fetch data", error)
         } finally {

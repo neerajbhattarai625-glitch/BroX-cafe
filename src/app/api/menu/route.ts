@@ -23,24 +23,27 @@ export async function POST(request: Request) {
         const file = formData.get('image') as File | null;
 
         let imagePath = '/images/default-food.jpg';
+        type CloudinaryUploadResult = { secure_url?: string };
 
         if (file && file.size > 0) {
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
 
             // Upload to Cloudinary using promise wrapper around upload_stream
-            const uploadResult: any = await new Promise((resolve, reject) => {
+            const uploadResult = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
                     { folder: 'cafe-menu' },
                     (error, result) => {
                         if (error) reject(error);
-                        else resolve(result);
+                        else resolve(result ?? {});
                     }
                 );
                 uploadStream.end(buffer);
             });
 
-            imagePath = uploadResult.secure_url;
+            if (uploadResult.secure_url) {
+                imagePath = uploadResult.secure_url;
+            }
         }
 
         const nameEn = formData.get('nameEn') as string;
