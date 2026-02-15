@@ -13,6 +13,7 @@ import type { Order, ServiceRequest } from "@/lib/types"
 import { toast } from "sonner"
 
 export function ChefClient() {
+    const [user, setUser] = useState<{ displayName: string, role: string } | null>(null)
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [prevPendingCount, setPrevPendingCount] = useState<number | null>(null)
@@ -24,14 +25,18 @@ export function ChefClient() {
     useEffect(() => {
         audioRef.current = new Audio("/sounds/notification.mp3")
         audioRef.current.load()
+        fetchUser()
     }, [])
 
-    const playNotification = (msg = "New Order in Kitchen!") => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = 0
-            audioRef.current.play().catch(e => console.warn("Audio blocked:", e))
+    const fetchUser = async () => {
+        try {
+            const res = await fetch('/api/me')
+            if (res.ok) {
+                setUser(await res.json())
+            }
+        } catch (e) {
+            console.error(e)
         }
-        toast.info(msg, { position: "top-center" })
     }
 
     const fetchData = async () => {
@@ -43,14 +48,14 @@ export function ChefClient() {
 
             if (ordersRes.ok) {
                 const data = await ordersRes.json()
-                const pendingOrders = data.filter((o: Order) => o.status === 'PENDING')
+                const pendingOrdersCount = data.filter((o: Order) => o.status === 'PENDING').length
 
-                if (!isFirstLoad.current && prevPendingCount !== null && pendingOrders.length > prevPendingCount) {
+                if (!isFirstLoad.current && prevPendingCount !== null && pendingOrdersCount > prevPendingCount) {
                     playNotification("New Order!")
                 }
 
                 setOrders(data)
-                setPrevPendingCount(pendingOrders.length)
+                setPrevPendingCount(pendingOrdersCount)
             }
 
             if (requestsRes.ok) {
@@ -76,6 +81,14 @@ export function ChefClient() {
         const interval = setInterval(fetchData, 10000)
         return () => clearInterval(interval)
     }, [])
+
+    const playNotification = (msg = "New Order in Kitchen!") => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch(e => console.warn("Audio blocked:", e))
+        }
+        toast.info(msg, { position: "top-center" })
+    }
 
     const updateStatus = async (orderId: string, newStatus: string) => {
         try {
@@ -116,18 +129,20 @@ export function ChefClient() {
     const uncompletedRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VOICE_ORDER');
 
     return (
-        <div className="min-h-screen bg-background p-6 font-sans text-foreground">
-            <div className="flex items-center justify-between mb-6 md:mb-8 max-w-7xl mx-auto">
+        <div className="min-h-screen bg-background p-4 md:p-6 font-sans text-foreground">
+            <div className="flex items-center justify-between mb-6 md:mb-8 max-w-7xl mx-auto gap-4">
                 <div className="flex items-center gap-2 md:gap-3">
                     <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-orange-500 dark:bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-200 dark:shadow-orange-900">
                         <ChefHat className="h-5 w-5 md:h-7 md:w-7" />
                     </div>
                     <div>
-                        <h1 className="text-xl md:text-3xl font-bold text-foreground">Kitchen Display</h1>
+                        <h1 className="text-xl md:text-3xl font-bold text-foreground">
+                            {user?.displayName ? `${user.displayName}'s Kitchen` : 'Kitchen Display'}
+                        </h1>
                         <p className="text-xs md:text-base text-muted-foreground font-medium hidden sm:block">Manage active food preparation</p>
                     </div>
                 </div>
-                <div className="flex gap-2 md:gap-3">
+                <div className="flex gap-2">
                     {/* Desktop buttons */}
                     <div className="hidden md:flex gap-3">
                         <ChangePasswordModal />
@@ -242,7 +257,7 @@ export function ChefClient() {
                 {/* Column: PREPARING */}
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-neutral-800">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
                             In Preparation
                             <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900 border-none px-2.5 py-0.5 rounded-full">
                                 {preparingOrders.length}
@@ -252,7 +267,7 @@ export function ChefClient() {
 
                     <div className="space-y-4">
                         {preparingOrders.length === 0 && (
-                            <div className="bg-white border-2 border-dashed border-neutral-200 rounded-2xl p-12 text-center text-neutral-400">
+                            <div className="bg-card border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center text-muted-foreground">
                                 <Clock className="h-12 w-12 mx-auto mb-3 opacity-20" />
                                 <p className="font-medium text-lg">Nothing is cooking yet</p>
                             </div>
@@ -278,14 +293,14 @@ export function ChefClient() {
 
 function OrderCard({ order, actionLabel, actionIcon, onAction, colorClass, badgeClass, variant = "orange" }: any) {
     return (
-        <Card className={`overflow-hidden border-2 shadow-sm rounded-2xl transition-all hover:shadow-md ${colorClass}`}>
-            <CardHeader className="pb-3 border-b bg-neutral-50/50">
+        <Card className={`overflow-hidden border-2 shadow-sm rounded-2xl transition-all hover:shadow-md bg-card ${colorClass}`}>
+            <CardHeader className="pb-3 border-b bg-muted/50">
                 <div className="flex justify-between items-start">
                     <div>
                         <CardTitle className="text-lg font-bold">
                             {order.isOnlineOrder ? 'Online Guest' : `Table ${order.tableNo}`}
                         </CardTitle>
-                        <CardDescription className="flex items-center gap-1.5 mt-0.5 font-medium text-neutral-500">
+                        <CardDescription className="flex items-center gap-1.5 mt-0.5 font-medium text-muted-foreground">
                             <Clock className="h-3.5 w-3.5" /> {order.time}
                         </CardDescription>
                     </div>
@@ -302,16 +317,16 @@ function OrderCard({ order, actionLabel, actionIcon, onAction, colorClass, badge
             <CardContent className="pt-4 pb-4">
                 <ul className="space-y-3">
                     {order.items.map((item: any, i: number) => (
-                        <li key={i} className="flex justify-between items-center bg-white p-3 rounded-xl border border-neutral-100 shadow-sm">
-                            <span className="font-semibold text-neutral-800">{item.name}</span>
-                            <span className="h-8 w-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center text-sm font-bold">
+                        <li key={i} className="flex justify-between items-center bg-card p-3 rounded-xl border border-border shadow-sm">
+                            <span className="font-semibold text-foreground">{item.name}</span>
+                            <span className="h-8 w-8 rounded-lg bg-foreground text-background flex items-center justify-center text-sm font-bold">
                                 {item.qty}
                             </span>
                         </li>
                     ))}
                 </ul>
             </CardContent>
-            <CardFooter className="bg-neutral-50/50 pt-3 pb-3 border-t">
+            <CardFooter className="bg-muted/50 pt-3 pb-3 border-t">
                 <Button
                     className={`w-full h-12 rounded-xl font-bold gap-2 text-white shadow-lg transition-transform active:scale-[0.98] ${variant === "blue"
                         ? "bg-blue-600 hover:bg-blue-700 shadow-blue-100"

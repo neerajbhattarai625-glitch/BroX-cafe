@@ -40,6 +40,10 @@ export function MenuManager() {
 
     useEffect(() => {
         fetchMenu()
+        fetchCategories()
+    }, [])
+
+    const fetchCategories = () => {
         fetch('/api/categories')
             .then(res => {
                 if (!res.ok) throw new Error("Failed to load categories")
@@ -57,7 +61,7 @@ export function MenuManager() {
                 console.error("Failed to load categories", err)
                 setCategories([])
             })
-    }, [])
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -102,9 +106,40 @@ export function MenuManager() {
         }
     }
 
+    const handleAddCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const nameEn = formData.get('catNameEn');
+        const nameNp = formData.get('catNameNp');
+
+        try {
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nameEn, nameNp })
+            });
+            if (res.ok) {
+                (e.target as HTMLFormElement).reset();
+                fetchCategories();
+            }
+        } catch (e) { console.error(e) }
+    }
+
+    const handleDeleteCategory = async (id: string) => {
+        if (!confirm("Delete this category? Only works if it has no items.")) return;
+        try {
+            const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+            if (res.ok) fetchCategories();
+            else {
+                const err = await res.json();
+                alert(err.error || "Failed deletion");
+            }
+        } catch (e) { console.error(e) }
+    }
+
     return (
-        <div className="grid gap-6">
-            <Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="md:col-span-2 lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Add Menu Item</CardTitle>
                     <CardDescription>Add new dishes to the digital menu.</CardDescription>
@@ -155,36 +190,68 @@ export function MenuManager() {
                         </div>
                     </form>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex justify-between border-t mt-4 pt-4">
                     {success && <p className="text-green-600 font-medium">Item added successfully!</p>}
-                    <Button type="submit" form="menu-form" disabled={loading}>
+                    <Button type="submit" form="menu-form" disabled={loading} className="ml-auto">
                         {loading ? "Adding..." : "Add Item"}
                     </Button>
                 </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="lg:col-span-1">
+                <CardHeader>
+                    <CardTitle>Categories</CardTitle>
+                    <CardDescription>Manage food categories.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAddCategory} className="space-y-3 mb-6">
+                        <Input name="catNameEn" placeholder="Category (English)" required />
+                        <Input name="catNameNp" placeholder="Category (Nepali)" required />
+                        <Button type="submit" variant="secondary" className="w-full">Add Category</Button>
+                    </form>
+                    <div className="space-y-2 max-h-[400px] overflow-auto pr-1">
+                        {categories.map(c => (
+                            <div key={c.id} className="flex items-center justify-between p-2 border rounded-lg text-sm bg-muted/50">
+                                <span>{c.nameEn}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive"
+                                    onClick={() => handleDeleteCategory(c.id)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2 lg:col-span-3">
                 <CardHeader>
                     <CardTitle>Existing Menu Items</CardTitle>
                     <CardDescription>Manage your current menu items.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {menuItems.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                <div>
-                                    <h3 className="font-medium">{item.nameEn} ({item.nameNp})</h3>
-                                    <p className="text-sm text-gray-500">
-                                        Rs. {item.price} • {item.category?.nameEn}
+                            <div key={item.id} className="flex items-center justify-between p-4 border rounded-xl bg-card hover:bg-accent/50 transition-colors shadow-sm">
+                                <div className="min-w-0">
+                                    <h3 className="font-bold truncate">{item.nameEn}</h3>
+                                    <p className="text-xs text-muted-foreground truncate">{item.nameNp}</p>
+                                    <p className="text-sm font-semibold mt-1 text-primary">
+                                        Rs. {item.price} • <span className="text-muted-foreground font-normal">{item.category?.nameEn}</span>
                                     </p>
                                 </div>
-                                <Button variant="destructive" size="icon" onClick={() => handleDelete(item.id)}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(item.id)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                         ))}
                         {menuItems.length === 0 && (
-                            <p className="text-center text-muted-foreground py-4">No menu items found.</p>
+                            <p className="col-span-full text-center text-muted-foreground py-8 border-2 border-dashed rounded-xl">
+                                No menu items found.
+                            </p>
                         )}
                     </div>
                 </CardContent>

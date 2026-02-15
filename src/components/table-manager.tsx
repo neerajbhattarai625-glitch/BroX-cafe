@@ -183,13 +183,13 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
                                 </Dialog>
                             )}
                             <Button
-                                variant="ghost"
-                                size="icon"
-                                className={table.status === 'OPEN' ? "text-green-600" : "text-gray-400"}
+                                variant={table.status === 'OPEN' ? "destructive" : "default"}
+                                size="sm"
+                                className="w-full gap-2 rounded-lg font-bold shadow-sm"
                                 onClick={() => toggleStatus(table)}
-                                title={table.status === 'OPEN' ? "Close Table" : "Open Table"}
                             >
-                                <Power className="h-4 w-4" />
+                                <Power className="h-3.5 w-3.5" />
+                                {table.status === 'OPEN' ? 'Close' : 'Open'}
                             </Button>
                             {userRole === 'ADMIN' && (
                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTable(table.id)}>

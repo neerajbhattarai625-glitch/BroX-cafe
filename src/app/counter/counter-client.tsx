@@ -11,7 +11,8 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordModal } from "@/components/change-password-modal"
 import type { Order, ServiceRequest } from "@/lib/types" // Ensure types are updated if needed
 import { TableManager } from "@/components/table-manager"
-import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
+import { SalesSummary } from "@/components/sales-summary"
+import { MobileMenu } from "@/components/mobile-menu"
 import { toast } from "sonner"
 
 interface CounterClientProps {
@@ -19,44 +20,29 @@ interface CounterClientProps {
 }
 
 export function CounterClient({ initialUser }: CounterClientProps) {
+    const [user, setUser] = useState<{ displayName: string, role: string } | null>(null)
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
-    const seenOrderIds = useRef<Set<string>>(new Set())
-    const seenServedIds = useRef<Set<string>>(new Set())
     const seenRequestIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
     const audioRef = useRef<HTMLAudioElement | null>(null)
+    const router = useRouter()
 
     useEffect(() => {
         audioRef.current = new Audio("/sounds/notification.mp3")
         audioRef.current.load()
+        fetchUser()
     }, [])
 
-    const playNotification = (message = "New Order Received!") => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = 0
-            audioRef.current.play().then(() => {
-                console.log("Audio played successfully")
-            }).catch(e => {
-                console.warn("Audio playback blocked or failed:", e)
-            })
+    const fetchUser = async () => {
+        try {
+            const res = await fetch('/api/me')
+            if (res.ok) {
+                setUser(await res.json())
+            }
+        } catch (e) {
+            console.error(e)
         }
-        toast.info(message, {
-            duration: 3000,
-            position: "top-right"
-        })
-    }
-
-    const router = useRouter()
-
-    const handleLogout = async () => {
-        await fetch('/api/logout', { method: 'POST' })
-        router.push('/login')
-    }
-
-    const testSound = () => {
-        playNotification()
-        alert("If you didn't hear a sound, please ensure your volume is up and you've allowed audio in your browser settings.")
     }
 
     const fetchData = async () => {
@@ -67,41 +53,19 @@ export function CounterClient({ initialUser }: CounterClientProps) {
             ])
 
             if (ordersRes.ok) {
-                const data: Order[] = await ordersRes.json()
-
-                if (!isFirstLoad.current) {
-                    // 1. Check for new PENDING orders
-                    const hasNewOrder = data.some(o => o.status === 'PENDING' && !seenOrderIds.current.has(o.id));
-                    if (hasNewOrder) playNotification("New Customer Order!");
-
-                    // 2. Check for newly SERVED orders (Ready from kitchen)
-                    const hasNewServed = data.some(o => o.status === 'SERVED' && !seenServedIds.current.has(o.id));
-                    if (hasNewServed) playNotification("Order Ready in Kitchen!");
-                }
-
-                // Update seen IDs
-                data.forEach(o => {
-                    seenOrderIds.current.add(o.id)
-                    if (o.status === 'SERVED') seenServedIds.current.add(o.id)
-                })
-
+                const data = await ordersRes.json()
                 setOrders(data)
             }
 
             if (requestsRes.ok) {
                 const newReqs: ServiceRequest[] = await requestsRes.json();
-
                 if (!isFirstLoad.current) {
                     const hasNewReq = newReqs.some(r => r.status === 'PENDING' && !seenRequestIds.current.has(r.id));
-                    if (hasNewReq) playNotification("New Service Request / Voice Order!");
+                    if (hasNewReq) playNotification("New Service Request!");
                 }
-
                 newReqs.forEach(r => seenRequestIds.current.add(r.id));
-                // Filter for Counter: Only VOICE_ORDER should reach here
-                const voiceRequests = newReqs.filter(r => r.type === 'VOICE_ORDER');
-                setRequests(voiceRequests);
+                setRequests(newReqs);
             }
-
             isFirstLoad.current = false
         } catch (error) {
             console.error("Failed to fetch data", error)
@@ -109,60 +73,26 @@ export function CounterClient({ initialUser }: CounterClientProps) {
     }
 
     useEffect(() => {
-        const timeout = setTimeout(fetchData, 0)
+        fetchData()
         const interval = setInterval(fetchData, 10000)
-        return () => {
-            clearTimeout(timeout)
-            clearInterval(interval)
-        }
+        return () => clearInterval(interval)
     }, [])
 
-    const confirmPayment = async (orderId: string) => {
-        try {
-            const orderToPay = orders.find(o => o.id === orderId)
-            if (!orderToPay) return
-
-            await fetch('/api/orders', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: orderId, paymentStatus: 'PAID', status: 'PAID' })
-            })
-
-            // Auto-close table logic
-            if (!orderToPay.isOnlineOrder && orderToPay.tableNo) {
-                // Fetch fresh tables to get the table ID
-                const tablesRes = await fetch('/api/tables')
-                if (tablesRes.ok) {
-                    const tables = await tablesRes.json()
-                    const table = tables.find((t: any) => t.number === orderToPay.tableNo)
-
-                    if (table && table.status === 'OPEN') {
-                        // Check if ANY other orders for this table are still unpaid
-                        const otherUnpaid = orders.filter(o =>
-                            o.tableNo === orderToPay.tableNo &&
-                            o.id !== orderId &&
-                            o.paymentStatus !== 'PAID' &&
-                            o.status !== 'CANCELLED'
-                        )
-
-                        if (otherUnpaid.length === 0) {
-                            await fetch('/api/tables', {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: table.id, status: 'CLOSED' })
-                            })
-                            toast.success(`Table ${orderToPay.tableNo} closed automatically`, {
-                                description: "All orders have been paid."
-                            })
-                        }
-                    }
-                }
-            }
-            fetchData()
-        } catch (error) {
-            console.error("Failed to confirm payment", error)
-            toast.error("Failed to confirm payment")
+    const playNotification = (msg = "Counter Notification") => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch(e => console.warn("Audio blocked:", e))
         }
+        toast.info(msg, { position: "top-center" })
+    }
+
+    const testSound = () => {
+        playNotification("Test Sound Working!")
+    }
+
+    const handleLogout = async () => {
+        await fetch('/api/logout', { method: 'POST' })
+        router.push('/login')
     }
 
     const handleRequestAction = async (id: string, action: 'COMPLETED' | 'CANCELLED') => {
@@ -178,76 +108,82 @@ export function CounterClient({ initialUser }: CounterClientProps) {
         }
     }
 
-    // Logic to filter orders: Only show if ALL orders for the table are SERVED (or PAID/CANCELLED)
-    // blocking statuses: PENDING, PREPARING, READY
-    const isTableFullyServed = (tableNo: string) => {
-        const tableOrders = orders.filter(o => o.tableNo === tableNo && o.status !== 'CANCELLED');
-        // If any order is NOT Served and NOT Paid, then it's blocking
-        // Actually, we want to know if everything is at least SERVED.
-        // So PENDING, PREPARING, READY are blocking.
-        // SERVED is fine. PAID is fine.
-        return !tableOrders.some(o => ['PENDING', 'PREPARING', 'READY'].includes(o.status));
+    const confirmPayment = async (orderId: string) => {
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: orderId, paymentStatus: 'PAID' })
+            })
+            if (res.ok) {
+                toast.success("Payment confirmed")
+                fetchData()
+            }
+        } catch (error) {
+            toast.error("Failed to confirm payment")
+        }
     }
 
-    // Filter for Cash Pending AND Table is Ready for Bill
-    // method='CASH' and paymentStatus='PENDING' and status='SERVED'
-    // AND isTableFullyServed
-    const pendingPayments = orders.filter(o => {
-        if (o.paymentMethod !== 'CASH' || o.paymentStatus !== 'PENDING') return false;
-        if (o.status !== 'SERVED') return false; // Must be served to pay
-        if (o.tableNo && !isTableFullyServed(o.tableNo)) return false;
-        return true;
-    });
-
-    // Notification logic for Counter: Only beep if a new order appears in the *eligible* pending payments
-    // We need to track eligible IDs specifically for notification
-    const eligiblePaymentIds = useRef<Set<string>>(new Set())
-
-    useEffect(() => {
-        if (isFirstLoad.current) return;
-
-        const newEligible = pendingPayments.filter(o => !eligiblePaymentIds.current.has(o.id));
-        if (newEligible.length > 0) {
-            playNotification("New Bill Ready for Payment!");
-            newEligible.forEach(o => eligiblePaymentIds.current.add(o.id));
-        }
-    }, [pendingPayments]) // Depend on the filtered list
-
-    // Recent Sales (Paid orders)
-    const paidOrders = orders.filter(o => o.paymentStatus === 'PAID')
-
-    // Uncompleted requests
-    const uncompletedRequests = requests.filter(r => r.status === 'PENDING');
+    const pendingPayments = orders.filter(o => o.status === 'SERVED' && o.paymentStatus !== 'PAID')
+    const uncompletedRequests = requests.filter(r => r.status === 'PENDING')
 
     return (
-        <div className="min-h-screen bg-muted/40 p-6">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Counter Dashboard</h1>
-                    <p className="text-muted-foreground">Manage payments and view sales</p>
+        <div className="min-h-screen bg-muted/40 p-4 md:p-6">
+            <div className="flex items-center justify-between mb-8 gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-green-500 dark:bg-green-600 flex items-center justify-center text-white shadow-lg">
+                        <Banknote className="h-5 w-5 md:h-7 md:w-7" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">
+                            {user?.displayName ? `${user.displayName}'s Counter` : 'Counter Dashboard'}
+                        </h1>
+                        <p className="text-xs md:text-base text-muted-foreground hidden sm:block">Manage payments and view sales</p>
+                    </div>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <ThemeToggle />
-                    <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
-                        <Volume2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" className="gap-2 bg-background">
-                        <Bell className="h-4 w-4" />
-                        <span className="hidden md:inline">Requests</span>
-                        <Badge variant="destructive" className="ml-1 rounded-full px-1">{uncompletedRequests.length}</Badge>
-                    </Button>
-                    <ChangePasswordModal />
-                    <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                        <LogOut className="h-5 w-5" />
-                    </Button>
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <Banknote className="h-6 w-6 text-green-700" />
+
+                <div className="flex gap-2">
+                    {/* Desktop Actions */}
+                    <div className="hidden md:flex gap-2 items-center">
+                        <ThemeToggle />
+                        <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
+                            <Volume2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" className="gap-2 bg-background">
+                            <Bell className="h-4 w-4" />
+                            <span>Requests</span>
+                            <Badge variant="destructive" className="ml-1 rounded-full px-1">{uncompletedRequests.length}</Badge>
+                        </Button>
+                        <ChangePasswordModal />
+                        <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+                            <LogOut className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {/* Mobile Menu */}
+                    <div className="md:hidden">
+                        <MobileMenu>
+                            <ChangePasswordModal />
+                            <ThemeToggle />
+                            <Button variant="outline" className="w-full justify-start gap-2" onClick={testSound}>
+                                <Volume2 className="h-4 w-4" />
+                                Test Sound
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start gap-2">
+                                <Bell className="h-4 w-4" />
+                                Requests ({uncompletedRequests.length})
+                            </Button>
+                            <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleLogout}>
+                                <LogOut className="h-4 w-4" />
+                                Logout
+                            </Button>
+                        </MobileMenu>
                     </div>
                 </div>
             </div>
 
             <Tabs defaultValue="payments" className="w-full">
-                <TabsList>
+                <TabsList className="bg-background border mb-4">
                     <TabsTrigger value="payments">
                         Pending Payments
                         {pendingPayments.length > 0 && <Badge variant="destructive" className="ml-2 px-1 rounded-full">{pendingPayments.length}</Badge>}
@@ -263,29 +199,32 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                 <TabsContent value="payments">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
                         {pendingPayments.length === 0 && (
-                            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl">
+                            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-card">
                                 <h3 className="text-lg font-semibold mb-1">No Pending Bills</h3>
                                 <p className="text-muted-foreground">Bills will appear here only after all items for a table are served.</p>
                             </div>
                         )}
                         {pendingPayments.map(order => (
-                            <Card key={order.id} className="border-l-4 border-l-orange-500">
-                                <CardHeader>
-                                    <div className="flex justify-between">
-                                        <CardTitle>Table {order.tableNo}</CardTitle>
-                                        <Badge variant="outline">Rs. {order.total}</Badge>
+                            <Card key={order.id} className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+                                <CardHeader className="pb-3">
+                                    <div className="flex justify-between items-start">
+                                        <CardTitle className="text-lg">Table {order.tableNo}</CardTitle>
+                                        <Badge variant="outline" className="font-bold text-primary">Rs. {order.total}</Badge>
                                     </div>
                                     <CardDescription>{order.time} - {order.paymentMethod}</CardDescription>
                                 </CardHeader>
-                                <CardContent>
-                                    <ul className="text-sm space-y-1">
-                                        {order.items.map((item, i) => (
-                                            <li key={i}>{item.qty}x {item.name}</li>
+                                <CardContent className="pb-4">
+                                    <ul className="text-sm space-y-2 border-t pt-3">
+                                        {(order.items as any[]).map((item, i) => (
+                                            <li key={i} className="flex justify-between">
+                                                <span>{item.name}</span>
+                                                <span className="font-medium">x{item.qty}</span>
+                                            </li>
                                         ))}
                                     </ul>
                                 </CardContent>
-                                <CardFooter>
-                                    <Button className="w-full" onClick={() => confirmPayment(order.id)}>
+                                <CardFooter className="pt-0">
+                                    <Button className="w-full bg-green-600 hover:bg-green-700 shadow-sm" onClick={() => confirmPayment(order.id)}>
                                         Confirm Payment Received
                                     </Button>
                                 </CardFooter>
@@ -296,35 +235,34 @@ export function CounterClient({ initialUser }: CounterClientProps) {
 
                 <TabsContent value="requests">
                     <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-                        {uncompletedRequests.length === 0 && <p className="text-muted-foreground">No active requests</p>}
+                        {uncompletedRequests.length === 0 && (
+                            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-card">
+                                <p className="text-muted-foreground">No active requests</p>
+                            </div>
+                        )}
                         {uncompletedRequests.map(req => (
                             <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm">
                                 <CardHeader className="pb-2">
-                                    <CardTitle className="flex justify-between items-center">
+                                    <CardTitle className="flex justify-between items-center text-base">
                                         <span>Table {req.tableNo}</span>
                                         <span className="text-xs font-normal text-muted-foreground">{req.time}</span>
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-md py-1 px-3 w-full justify-center">
+                                <CardContent className="pb-4">
+                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-xs py-1 px-3 w-full justify-center rounded-lg">
                                         {req.type.replace('_', ' ')}
                                     </Badge>
 
-                                    {/* Voice Order Player */}
                                     {req.type === 'VOICE_ORDER' && req.audioData && (
                                         <div className="mt-4 flex flex-col gap-2">
-                                            <audio
-                                                controls
-                                                src={req.audioData}
-                                                className="w-full h-8"
-                                            />
-                                            <p className="text-xs text-center text-muted-foreground">Listen and create order</p>
+                                            <audio controls src={req.audioData} className="w-full h-8" />
+                                            <p className="text-[10px] text-center text-muted-foreground">Voice Message</p>
                                         </div>
                                     )}
                                 </CardContent>
                                 <CardFooter className="gap-2">
-                                    <Button size="sm" variant="outline" className="w-full flex-1" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
-                                    <Button size="sm" className="w-full flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
+                                    <Button size="sm" variant="outline" className="w-full flex-1 h-9" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
+                                    <Button size="sm" className="w-full flex-1 h-9 bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
                                 </CardFooter>
                             </Card>
                         ))}
@@ -332,7 +270,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                 </TabsContent>
 
                 <TabsContent value="tables">
-                    <div className="mt-4">
+                    <div className="mt-4 bg-card p-4 rounded-xl border border-border shadow-sm">
                         <TableManager userRole={initialUser.role} orders={orders} />
                     </div>
                 </TabsContent>

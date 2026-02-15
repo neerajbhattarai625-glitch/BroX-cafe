@@ -6,13 +6,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, Users, CheckCircle2, Play, LogOut, Volume2, Bell, Table as TableIcon } from "lucide-react"
+import { Clock, Users, CheckCircle2, Play, LogOut, Volume2, Bell, Table as TableIcon, Power } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordModal } from "@/components/change-password-modal"
+import { MobileMenu } from "@/components/mobile-menu"
 import type { Order, ServiceRequest, Table, OrderStatus } from "@/lib/types"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 export function StaffClient() {
+    const [user, setUser] = useState<{ displayName: string, role: string } | null>(null)
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [tables, setTables] = useState<Table[]>([])
@@ -25,13 +28,19 @@ export function StaffClient() {
     useEffect(() => {
         audioRef.current = new Audio("/sounds/notification.mp3")
         audioRef.current.load()
+        fetchUser()
     }, [])
 
-    useEffect(() => {
-        fetchData()
-        const interval = setInterval(fetchData, 3000)
-        return () => clearInterval(interval)
-    }, [])
+    const fetchUser = async () => {
+        try {
+            const res = await fetch('/api/me')
+            if (res.ok) {
+                setUser(await res.json())
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
 
     const fetchData = async () => {
         try {
@@ -48,7 +57,6 @@ export function StaffClient() {
             setRequests(requestsData)
             setTables(tablesData)
 
-            // Notification logic
             const currentPending = ordersData.filter((o: Order) => o.status === 'PENDING').length
             if (!isFirstLoad.current && prevPendingCount !== null && currentPending > prevPendingCount) {
                 playNotification()
@@ -60,6 +68,12 @@ export function StaffClient() {
             console.error('Failed to fetch data:', error)
         }
     }
+
+    useEffect(() => {
+        fetchData()
+        const interval = setInterval(fetchData, 3000)
+        return () => clearInterval(interval)
+    }, [])
 
     const playNotification = () => {
         if (audioRef.current) {
@@ -83,7 +97,6 @@ export function StaffClient() {
             })
             toast.success(`Order ${status.toLowerCase()}`)
         } catch (e) {
-            console.error(e)
             toast.error("Failed to update order")
         }
     }
@@ -114,7 +127,6 @@ export function StaffClient() {
                 toast.success(`Table ${action.toLowerCase()}`)
             }
         } catch (e) {
-            console.error(e)
             toast.error("Failed to update table")
         }
     }
@@ -127,25 +139,46 @@ export function StaffClient() {
 
     return (
         <div className="min-h-screen bg-background p-4 md:p-6 font-sans text-foreground">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-6 md:mb-8 gap-4 max-w-7xl mx-auto">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white shadow-lg">
                         <Users className="h-5 w-5 md:h-7 md:w-7" />
                     </div>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Staff Dashboard</h1>
-                        <p className="text-sm md:text-base text-muted-foreground font-medium">Manage orders and service requests</p>
+                        <h1 className="text-xl md:text-3xl font-bold text-foreground">
+                            {user?.displayName ? `${user.displayName}'s Staff Dashboard` : 'Staff Dashboard'}
+                        </h1>
+                        <p className="text-xs md:text-base text-muted-foreground font-medium hidden sm:block">Manage orders and service requests</p>
                     </div>
                 </div>
-                <div className="flex gap-2 md:gap-3 flex-wrap">
-                    <ChangePasswordModal />
-                    <ThemeToggle />
-                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl">
-                        <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600">
-                        <LogOut className="h-4 w-4 md:h-5 md:w-5" />
-                    </Button>
+                <div className="flex gap-2">
+                    {/* Desktop Actions */}
+                    <div className="hidden md:flex gap-3">
+                        <ChangePasswordModal />
+                        <ThemeToggle />
+                        <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl">
+                            <Volume2 className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600">
+                            <LogOut className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {/* Mobile Menu */}
+                    <div className="md:hidden">
+                        <MobileMenu>
+                            <ChangePasswordModal />
+                            <ThemeToggle />
+                            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => playNotification()}>
+                                <Volume2 className="h-4 w-4" />
+                                Test Sound
+                            </Button>
+                            <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleLogout}>
+                                <LogOut className="h-4 w-4" />
+                                Logout
+                            </Button>
+                        </MobileMenu>
+                    </div>
                 </div>
             </div>
 
@@ -284,62 +317,53 @@ export function StaffClient() {
                 </TabsContent>
 
                 <TabsContent value="tables" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Open Tables */}
-                        <div>
-                            <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2">
-                                Open Tables
-                                <Badge variant="secondary" className="px-2 py-0.5">{openTables.length}</Badge>
-                            </h2>
-                            <div className="space-y-3">
-                                {openTables.map(table => (
-                                    <Card key={table.id}>
-                                        <CardHeader className="pb-3">
-                                            <div className="flex justify-between items-center">
-                                                <CardTitle className="text-base">Table {table.number}</CardTitle>
-                                                <Badge variant="default" className="bg-green-600">Open</Badge>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button size="sm" variant="outline" onClick={() => handleTableAction(table.id, 'CLOSED')} className="w-full">
-                                                Close Table
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                                {openTables.length === 0 && (
-                                    <div className="bg-card border-2 border-dashed rounded-xl p-8 text-center text-muted-foreground">
-                                        <p>No open tables</p>
-                                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {[...openTables, ...closedTables].sort((a, b) => parseInt(a.number) - parseInt(b.number)).map(table => (
+                            <Card
+                                key={table.id}
+                                className={cn(
+                                    "relative overflow-hidden transition-all hover:shadow-md border-2",
+                                    table.status === 'OPEN' ? "border-green-500/20 bg-green-50/10" : "border-neutral-200 dark:border-neutral-800"
                                 )}
-                            </div>
-                        </div>
+                            >
+                                <CardHeader className="p-4 pb-2 text-center">
+                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                        Table {table.number}
+                                    </p>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-0 flex flex-col items-center gap-3">
+                                    <Badge
+                                        variant={table.status === 'OPEN' ? "default" : "outline"}
+                                        className={cn(
+                                            "font-bold px-3 py-0.5 rounded-full text-[10px] uppercase",
+                                            table.status === 'OPEN' ? "bg-green-500 hover:bg-green-600 border-none" : "text-muted-foreground"
+                                        )}
+                                    >
+                                        {table.status}
+                                    </Badge>
 
-                        {/* Closed Tables */}
-                        <div>
-                            <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2">
-                                Closed Tables
-                                <Badge variant="secondary" className="px-2 py-0.5">{closedTables.length}</Badge>
-                            </h2>
-                            <div className="space-y-3">
-                                {closedTables.slice(0, 10).map(table => (
-                                    <Card key={table.id}>
-                                        <CardHeader className="pb-3">
-                                            <div className="flex justify-between items-center">
-                                                <CardTitle className="text-base">Table {table.number}</CardTitle>
-                                                <Badge variant="secondary">Closed</Badge>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button size="sm" onClick={() => handleTableAction(table.id, 'OPEN')} className="w-full">
-                                                Open Table
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className={cn(
+                                            "h-10 w-10 rounded-full transition-colors",
+                                            table.status === 'OPEN'
+                                                ? "text-green-600 hover:text-green-700 hover:bg-green-100/50"
+                                                : "text-muted-foreground hover:bg-muted"
+                                        )}
+                                        onClick={() => handleTableAction(table.id, table.status === 'OPEN' ? 'CLOSED' : 'OPEN')}
+                                    >
+                                        <Power className={cn("h-5 w-5", table.status === 'OPEN' && "animate-pulse")} />
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
+                    {(openTables.length === 0 && closedTables.length === 0) && (
+                        <div className="bg-card border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
+                            <p className="font-medium">No tables configured in system</p>
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
         </div>

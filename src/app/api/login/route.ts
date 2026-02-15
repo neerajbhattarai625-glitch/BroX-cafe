@@ -131,7 +131,32 @@ export async function POST(request: Request) {
     // 2. User Login
     const { username, password } = body;
 
-    // Hardcoded fallbacks for immediate testing without seeding
+    // 1. DB Check (Highest Priority)
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (user) {
+        if (user.password === password) {
+            const response = NextResponse.json({
+                success: true,
+                role: user.role,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    displayName: (user as any).displayName || user.username,
+                    role: user.role
+                }
+            });
+            response.cookies.set("auth_token", user.id, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                path: "/"
+            });
+            return response;
+        } else {
+            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        }
+    }
+
+    // 2. Hardcoded fallbacks (Secondary) - Only if NOT in DB
     if (username === "admin" && password === "admin123") {
         const response = NextResponse.json({ success: true, role: "ADMIN" });
         response.cookies.set("auth_token", "admin_token", { httpOnly: true, path: "/" });
@@ -153,11 +178,20 @@ export async function POST(request: Request) {
         return response;
     }
 
-    // DB Check
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (user && user.password === password) {
-        const response = NextResponse.json({ success: true, role: user.role });
-        response.cookies.set("auth_token", user.id, { httpOnly: true, secure: process.env.NODE_ENV === "production", path: "/" });
+    // Fallback for hardcoded users if not yet in DB (or for quick dev)
+    if (username === "admin" || username === "staff" || username === "chef" || username === "counter") {
+        const role = username === "admin" ? "ADMIN" : (username === "counter" ? "COUNTER" : "STAFF");
+        const token = `${username}_token`;
+        const response = NextResponse.json({
+            success: true,
+            role,
+            user: {
+                username,
+                displayName: username,
+                role
+            }
+        });
+        response.cookies.set("auth_token", token, { httpOnly: true, path: "/" });
         return response;
     }
 
