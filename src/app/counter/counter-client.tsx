@@ -97,30 +97,50 @@ export function CounterClient({ initialUser }: CounterClientProps) {
 
     const confirmPayment = async (orderId: string) => {
         try {
-            // We need a specific endpoint or update the PUT order endpoint to handle paymentStatus
-            // For now, let's reuse PUT /api/orders to update status to PAID if currently PENDING_PAYMENT?
-            // Actually, let's update local state optimistically
+            const orderToPay = orders.find(o => o.id === orderId)
+            if (!orderToPay) return
 
-            // NOTE: We might need to update the API to handle specific payment status updates
-            // but for MVP, marking order status as PAID might be enough? 
-            // The requirement says "payment confirmed by counter staffs". 
-            // Let's assume this means setting paymentStatus='PAID'.
-
-            // I'll use the existing PUT /api/orders for now, but I might need to add a specialized action or strict param.
-            // Let's use a new server action or just update the PUT body to support paymentStatus.
-
-            // Wait, the existing PUT /api/orders only updates `status` (Order Status). 
-            // I should update it to support `paymentStatus` too.
-            // Let's assume I'll update the API next.
             await fetch('/api/orders', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: orderId, paymentStatus: 'PAID', status: 'PAID' }) // Auto-mark order as PAID too? Or just payment?
-                // Usually Payment Paid -> Order might still be Preparing. 
-                // But for "Cash", if they pay, status might not change, just paymentStatus.
+                body: JSON.stringify({ id: orderId, paymentStatus: 'PAID', status: 'PAID' })
             })
+
+            // Auto-close table logic
+            if (!orderToPay.isOnlineOrder && orderToPay.tableNo) {
+                // Fetch fresh tables to get the table ID
+                const tablesRes = await fetch('/api/tables')
+                if (tablesRes.ok) {
+                    const tables = await tablesRes.json()
+                    const table = tables.find((t: any) => t.number === orderToPay.tableNo)
+
+                    if (table && table.status === 'OPEN') {
+                        // Check if ANY other orders for this table are still unpaid
+                        const otherUnpaid = orders.filter(o =>
+                            o.tableNo === orderToPay.tableNo &&
+                            o.id !== orderId &&
+                            o.paymentStatus !== 'PAID' &&
+                            o.status !== 'CANCELLED'
+                        )
+
+                        if (otherUnpaid.length === 0) {
+                            await fetch('/api/tables', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: table.id, status: 'CLOSED' })
+                            })
+                            toast.success(`Table ${orderToPay.tableNo} closed automatically`, {
+                                description: "All orders have been paid."
+                            })
+                        }
+                    }
+                }
+            }
             fetchData()
-        } catch (error) { console.error(error) }
+        } catch (error) {
+            console.error("Failed to confirm payment", error)
+            toast.error("Failed to confirm payment")
+        }
     }
 
     // Filter for Cash Pending
