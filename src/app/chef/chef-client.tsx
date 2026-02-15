@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2, Bell } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordModal } from "@/components/change-password-modal"
+import { MobileMenu } from "@/components/mobile-menu"
 import type { Order, ServiceRequest } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -116,29 +117,52 @@ export function ChefClient() {
 
     return (
         <div className="min-h-screen bg-background p-6 font-sans text-foreground">
-            <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
-                <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-orange-500 dark:bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-200 dark:shadow-orange-900">
-                        <ChefHat className="h-7 w-7" />
+            <div className="flex items-center justify-between mb-6 md:mb-8 max-w-7xl mx-auto">
+                <div className="flex items-center gap-2 md:gap-3">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-orange-500 dark:bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-200 dark:shadow-orange-900">
+                        <ChefHat className="h-5 w-5 md:h-7 md:w-7" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">Kitchen Display</h1>
-                        <p className="text-muted-foreground font-medium">Manage active food preparation</p>
+                        <h1 className="text-xl md:text-3xl font-bold text-foreground">Kitchen Display</h1>
+                        <p className="text-xs md:text-base text-muted-foreground font-medium hidden sm:block">Manage active food preparation</p>
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <ChangePasswordModal />
-                    <ThemeToggle />
-                    <Button variant="outline" size="icon" title={`${uncompletedRequests.length} Active Requests`} className="rounded-xl border-neutral-200 dark:border-neutral-800 relative">
-                        <Bell className="h-5 w-5" />
-                        {uncompletedRequests.length > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />}
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
-                        <Volume2 className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                        <LogOut className="h-5 w-5" />
-                    </Button>
+                <div className="flex gap-2 md:gap-3">
+                    {/* Desktop buttons */}
+                    <div className="hidden md:flex gap-3">
+                        <ChangePasswordModal />
+                        <ThemeToggle />
+                        <Button variant="outline" size="icon" title={`${uncompletedRequests.length} Active Requests`} className="rounded-xl border-neutral-200 dark:border-neutral-800 relative">
+                            <Bell className="h-5 w-5" />
+                            {uncompletedRequests.length > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />}
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
+                            <Volume2 className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                            <LogOut className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {/* Mobile menu */}
+                    <div className="md:hidden">
+                        <MobileMenu>
+                            <ChangePasswordModal />
+                            <ThemeToggle />
+                            <Button variant="outline" className="w-full justify-start gap-2" title={`${uncompletedRequests.length} Active Requests`}>
+                                <Bell className="h-4 w-4" />
+                                Requests ({uncompletedRequests.length})
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => playNotification()}>
+                                <Volume2 className="h-4 w-4" />
+                                Test Sound
+                            </Button>
+                            <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleLogout}>
+                                <LogOut className="h-4 w-4" />
+                                Logout
+                            </Button>
+                        </MobileMenu>
+                    </div>
                 </div>
             </div>
 
