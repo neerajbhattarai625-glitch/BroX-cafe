@@ -160,12 +160,15 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
             {/* Header / Nav */}
             <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 h-16 transition-all duration-300">
                 <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => router.push('/login')}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+                    >
                         <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
                             <ChefHat className="w-5 h-5" />
                         </div>
                         <h1 className="font-serif italic text-xl font-bold tracking-tight">Cafe Delight</h1>
-                    </div>
+                    </button>
 
                     <div className="flex items-center gap-2">
                         {/* Info Button (Mobile) - Could be a sheet, simpler for now just icon */}
