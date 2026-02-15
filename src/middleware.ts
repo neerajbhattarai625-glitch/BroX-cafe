@@ -16,8 +16,8 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/blocked", request.url))
     }
 
-    // 2. Dashboard Auth
-    if (path.startsWith("/dashboard")) {
+    // 2. Dashboard & Counter Auth
+    if (path.startsWith("/dashboard") || path.startsWith("/counter")) {
         const token = request.cookies.get("auth_token")?.value
 
         if (!token) {

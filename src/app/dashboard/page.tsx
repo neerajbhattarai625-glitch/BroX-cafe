@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./dashboard-client";
 
@@ -24,8 +25,9 @@ export default async function DashboardPage() {
         }
     }
 
-    // If no user found, DashboardClient won't show tabs (or could redirect here if we wanted)
-    // But client will handle logout anyway.
+    if (!user) {
+        redirect("/login");
+    }
 
     return <DashboardClient initialUser={user} />
 }

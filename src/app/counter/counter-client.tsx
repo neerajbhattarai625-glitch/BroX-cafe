@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut, Volume2 } from "lucide-react" // Banknote icon
 import type { Order } from "@/lib/types" // Ensure types are updated if needed
 import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
+import { toast } from "sonner"
 
 interface CounterClientProps {
     initialUser: { role: string }
@@ -27,10 +28,20 @@ export function CounterClient({ initialUser }: CounterClientProps) {
     const playNotification = () => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
-            audioRef.current.play().catch(e => {
-                console.warn("Audio playback delayed or blocked:", e)
+            audioRef.current.play().then(() => {
+                console.log("Audio played successfully")
+            }).catch(e => {
+                console.warn("Audio playback blocked or failed:", e)
+                toast.error("New Order! (Sound blocked by browser - click anywhere to enable)", {
+                    duration: 5000,
+                    position: "top-center"
+                })
             })
         }
+        toast.info("New Order Received!", {
+            duration: 3000,
+            position: "top-right"
+        })
     }
 
     const router = useRouter()

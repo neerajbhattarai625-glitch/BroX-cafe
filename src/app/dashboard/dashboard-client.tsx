@@ -12,6 +12,7 @@ import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
 import { TableManager } from "@/components/table-manager"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 interface DashboardClientProps {
     initialUser: { role: string } | null
@@ -140,10 +141,20 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const playNotification = () => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
-            audioRef.current.play().catch(e => {
-                console.warn("Audio playback delayed or blocked:", e)
+            audioRef.current.play().then(() => {
+                console.log("Audio played successfully")
+            }).catch(e => {
+                console.warn("Audio playback blocked or failed:", e)
+                toast.error("New Order! (Sound blocked by browser - click anywhere to enable)", {
+                    duration: 5000,
+                    position: "top-center"
+                })
             })
         }
+        toast.info("New Order Received!", {
+            duration: 3000,
+            position: "top-right"
+        })
     }
 
     const router = useRouter()
