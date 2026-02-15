@@ -111,18 +111,18 @@ export function ChefClient() {
 
     const pendingOrders = orders.filter(o => o.status === 'PENDING')
     const preparingOrders = orders.filter(o => o.status === 'PREPARING')
-    const uncompletedRequests = requests.filter(r => r.status === 'PENDING')
+    const uncompletedRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VOICE_ORDER');
 
     return (
-        <div className="min-h-screen bg-neutral-50 p-6 font-sans">
+        <div className="min-h-screen bg-background p-6 font-sans text-foreground">
             <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
                 <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-200">
                         <ChefHat className="h-7 w-7" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-neutral-900">Kitchen Display</h1>
-                        <p className="text-neutral-500 font-medium">Manage active food preparation</p>
+                        <h1 className="text-3xl font-bold text-foreground">Kitchen Display</h1>
+                        <p className="text-muted-foreground font-medium">Manage active food preparation</p>
                     </div>
                 </div>
                 <div className="flex gap-3">

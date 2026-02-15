@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
@@ -106,6 +107,29 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const { id, status, paymentStatus } = body;
+
+        // Update Gamification Stats if Payment is Confirmed
+        if (status === 'PAID') {
+            // Find order to get deviceId
+            const currentOrder = await prisma.order.findUnique({
+                where: { id },
+                select: { deviceName: true, total: true, paymentStatus: true }
+            });
+
+            if (currentOrder && currentOrder.paymentStatus !== 'PAID' && currentOrder.deviceName) {
+                await prisma.deviceStats.upsert({
+                    where: { deviceId: currentOrder.deviceName },
+                    create: {
+                        deviceId: currentOrder.deviceName,
+                        totalSpend: currentOrder.total,
+                        totalVisits: 1
+                    },
+                    update: {
+                        totalSpend: { increment: currentOrder.total }
+                    }
+                }).catch(e => console.error("Gamification Update Failed:", e));
+            }
+        }
 
         const dataToUpdate: { status?: string; paymentStatus?: string } = {};
         if (status) dataToUpdate.status = status;

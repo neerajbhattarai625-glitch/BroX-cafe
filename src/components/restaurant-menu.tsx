@@ -21,6 +21,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu as MenuIcon, Scan, PhoneCall } from "lucide-react";
 import { QRScannerModal } from "@/components/qr-scanner-modal";
+import { UserProfile } from "@/components/user-profile";
 
 // Ensure GSAP plugin is registered
 if (typeof window !== "undefined") {
@@ -177,6 +178,8 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                         <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full font-bold text-xs" onClick={() => setLang(lang === 'en' ? 'np' : 'en')}>
                             {lang === 'en' ? 'NP' : 'EN'}
                         </Button>
+
+                        <UserProfile />
 
                         {!tableNo && (
                             <Button

@@ -78,36 +78,8 @@ export async function POST(request: Request) {
 
         let assignedToUserId = null;
 
-        // Smart Waiter Logic
-        if (userLat && userLng) {
-            // 1. Get active staff (active in last 15 mins)
-            const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000);
-            const activeStaff = await prisma.user.findMany({
-                where: {
-                    role: 'STAFF',
-                    lastActiveAt: { gte: fifteenAgo },
-                    lat: { not: null },
-                    lng: { not: null }
-                }
-            });
-
-            // 2. Find nearest
-            let minDistance = Infinity;
-
-            activeStaff.forEach(staff => {
-                if (staff.lat && staff.lng) {
-                    const d = getDistanceFromLatLonInKm(userLat, userLng, staff.lat, staff.lng);
-                    if (d < minDistance) {
-                        minDistance = d;
-                        assignedToUserId = staff.id;
-                    }
-                }
-            });
-
-            if (assignedToUserId) {
-                console.log(`[Smart Waiter] Assigned to ${assignedToUserId}`);
-            }
-        }
+        // Smart Waiter Logic Removed as per user request (Broadcast mode)
+        // Request will be unassigned and visible to all staff until picked up.
 
         const newReq = await prisma.serviceRequest.create({
             data: {

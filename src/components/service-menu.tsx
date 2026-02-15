@@ -23,18 +23,8 @@ export function ServiceMenu({ tableNo }: ServiceMenuProps) {
         let lat = null;
         let lng = null;
 
-        // Get Location if possible
-        if ("geolocation" in navigator) {
-            try {
-                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                });
-                lat = pos.coords.latitude;
-                lng = pos.coords.longitude;
-            } catch (e) {
-                console.warn("Location access denied or timed out");
-            }
-        }
+        // Geolocation removed as per user request
+        // if ("geolocation" in navigator) { ... }
 
         try {
             await fetch('/api/requests', {

@@ -96,7 +96,9 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                 }
 
                 newReqs.forEach(r => seenRequestIds.current.add(r.id));
-                setRequests(newReqs);
+                // Filter for Counter: Only VOICE_ORDER should reach here
+                const voiceRequests = newReqs.filter(r => r.type === 'VOICE_ORDER');
+                setRequests(voiceRequests);
             }
 
             isFirstLoad.current = false
