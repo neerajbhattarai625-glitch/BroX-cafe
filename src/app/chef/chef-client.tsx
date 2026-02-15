@@ -156,9 +156,9 @@ export function ChefClient() {
                             <OrderCard
                                 key={order.id}
                                 order={order}
-                                actionLabel="Mark as Ready"
+                                actionLabel="Ready for Pickup"
                                 actionIcon={<CheckCircle2 className="h-4 w-4" />}
-                                onAction={() => updateStatus(order.id, 'SERVED')}
+                                onAction={() => updateStatus(order.id, 'READY')}
                                 colorClass="border-blue-200"
                                 badgeClass="bg-blue-50 text-blue-600"
                                 variant="blue"

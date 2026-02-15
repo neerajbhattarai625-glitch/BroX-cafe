@@ -190,7 +190,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                             </Button>
                         )}
 
-                        <CartSheet />
+
                     </div>
                 </div>
             </header>
@@ -372,12 +372,16 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                 </div>
             </div>
 
-            {/* Floating Call Waiter Button - Only for Table Sessions */}
-            {tableNo && (
-                <div className="fixed bottom-6 right-6 z-40">
-                    <ServiceMenu tableNo={tableNo} />
-                </div>
-            )}
+            {/* Floating Action Buttons */}
+            <div className="fixed bottom-6 left-6 z-40">
+                {/* Service Menu (Bell) - Left */}
+                {tableNo && <ServiceMenu tableNo={tableNo} />}
+            </div>
+
+            <div className="fixed bottom-6 right-6 z-40">
+                {/* Cart (Shopping Bag) - Right */}
+                <CartSheet />
+            </div>
 
             {/* Simple Footer */}
             <footer className="py-8 text-center text-muted-foreground text-sm bg-background border-t border-border/40">

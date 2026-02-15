@@ -8,10 +8,16 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, ShieldAlert, MapPin, Volume2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import type { ServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
+import type { ServiceRequest as BaseServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
+
+interface ServiceRequest extends BaseServiceRequest {
+    assignedToUserId?: string;
+    audioData?: string;
+}
 import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
 import { TableManager } from "@/components/table-manager"
+import { DeviceManager } from "@/components/device-manager"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -93,16 +99,19 @@ function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStat
                 </div>
             </CardContent>
             <CardFooter className="gap-2">
-                {order.status === "PENDING" && role !== 'COUNTER' && (
+                {order.status === "PENDING" && role !== 'COUNTER' && role !== 'ADMIN' && (
                     <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onUpdateStatus(order.id, "PREPARING")}>
                         Start Cooking
                     </Button>
                 )}
-                {order.status === "PREPARING" && role !== 'COUNTER' && (
+                {/* PREPARING buttons hidden here, Chef Dashboard handles it */}
+
+                {order.status === "READY" && role !== 'COUNTER' && (
                     <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => onUpdateStatus(order.id, "SERVED")}>
                         Mark Served
                     </Button>
                 )}
+
                 {order.status === "SERVED" && (
                     <Button
                         variant={order.paymentStatus === 'PAID' ? "outline" : "default"}
@@ -142,6 +151,9 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     }, [])
 
     const playNotification = (message = "New Order Received!") => {
+        // ADMIN should not hear sounds
+        if (user?.role === 'ADMIN') return;
+
         if (audioRef.current) {
             audioRef.current.currentTime = 0
             audioRef.current.play().then(() => {
@@ -185,19 +197,20 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             if (orderRes.ok) {
                 const newOrders: Order[] = await orderRes.json();
 
-                // Play sound for brand new orders or served orders
+                // Play sound for brand new orders or READY orders (Kitchen -> Waiter)
                 if (!isFirstLoad.current) {
                     const hasNewOrder = newOrders.some(o => o.status === 'PENDING' && !seenOrderIds.current.has(o.id));
                     if (hasNewOrder) playNotification("New Customer Order!");
 
-                    const hasNewServed = newOrders.some(o => o.status === 'SERVED' && !seenServedIds.current.has(o.id));
-                    if (hasNewServed) playNotification("Order Ready in Kitchen!");
+                    // Notify Waiter when Chef sets status to READY
+                    const hasNewReady = newOrders.some(o => o.status === 'READY' && !seenServedIds.current.has(o.id));
+                    if (hasNewReady) playNotification("Order Ready to Serve!");
                 }
 
                 // Update seen IDs
                 newOrders.forEach(o => {
                     seenOrderIds.current.add(o.id)
-                    if (o.status === 'SERVED') seenServedIds.current.add(o.id)
+                    if (o.status === 'READY') seenServedIds.current.add(o.id)
                 });
                 setOrders(newOrders);
             }
@@ -208,7 +221,30 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 // Play sound for brand new service requests
                 if (!isFirstLoad.current) {
                     const hasNewReq = newReqs.some(r => r.status === 'PENDING' && !seenRequestIds.current.has(r.id));
-                    if (hasNewReq) playNotification();
+
+                    if (hasNewReq) {
+                        // Check if ANY of the new requests are assigned to ME
+                        const myRequest = newReqs.find(r =>
+                            r.status === 'PENDING' &&
+                            !seenRequestIds.current.has(r.id) &&
+                            r.assignedToUserId === (user as any)?.id // user token usually has id
+                        );
+
+                        if (myRequest) {
+                            playNotification(`Table ${myRequest.tableNo} is calling YOU!`);
+                            // Force sound playback for targeted request
+                            if (audioRef.current) {
+                                audioRef.current.currentTime = 0;
+                                audioRef.current.play().catch(e => console.error(e));
+                            }
+                        } else {
+                            // Generic notification for others (optional to silence or keep)
+                            if (user?.role === 'ADMIN') return; // Silence admin
+                            // Maybe only play soft sound for others? 
+                            // For now, keep standard
+                            playNotification();
+                        }
+                    }
                 }
 
                 // Update seen IDs
@@ -228,7 +264,31 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     useEffect(() => {
         fetchData()
         const interval = setInterval(fetchData, 10000)
-        return () => clearInterval(interval)
+
+        // Location Tracking for Smart Waiter (every 2 mins)
+        const trackLocation = () => {
+            if (user?.role === 'STAFF' && "geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    try {
+                        await fetch('/api/staff/location', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude
+                            })
+                        })
+                    } catch (e) { console.error("Loc update failed", e) }
+                });
+            }
+        };
+        trackLocation(); // Initial
+        const locInterval = setInterval(trackLocation, 120000);
+
+        return () => {
+            clearInterval(interval)
+            clearInterval(locInterval)
+        }
     }, [])
 
     const updateStatus = async (id: string, newStatus: OrderStatus, paymentStatus?: string) => {
@@ -257,6 +317,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
 
     const pendingOrders = orders.filter(o => o.status === "PENDING")
     const preparingOrders = orders.filter(o => o.status === "PREPARING")
+    const readyOrders = orders.filter(o => o.status === "READY") // New column for Waiter
     const uncompletedRequests = requests.filter(r => r.status === 'PENDING');
 
     return (
@@ -264,7 +325,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                        {user?.role === 'COUNTER' ? 'Counter Dashboard' : 'Kitchen Dashboard'}
+                        {user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')}
                     </h1>
                     <p className="text-muted-foreground">
                         {user?.role === 'COUNTER' ? 'Manage payments and view orders' : 'Manage active orders and service requests'}
@@ -272,9 +333,11 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 </div>
                 <div className="flex gap-2 items-center">
                     <ThemeToggle />
-                    <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
-                        <Volume2 className="h-4 w-4" />
-                    </Button>
+                    {user?.role !== 'ADMIN' && (
+                        <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
+                            <Volume2 className="h-4 w-4" />
+                        </Button>
+                    )}
                     <Button variant="outline" className="gap-2 bg-background">
                         <Bell className="h-4 w-4" />
                         <span className="hidden md:inline">Requests</span>
@@ -304,7 +367,8 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                         <>
                             <TabsTrigger value="reviews" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Reviews</TabsTrigger>
                             <TabsTrigger value="menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Menu</TabsTrigger>
-                            <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Sales</TabsTrigger>
+                            <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Sales & Analytics</TabsTrigger>
+                            <TabsTrigger value="devices" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Devices</TabsTrigger>
                         </>
                     )}
                     {user?.role !== 'COUNTER' && (
@@ -329,16 +393,20 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                             </div>
                         )}
 
-                        {/* Preparing Column - Hidden for Counter unless needed */}
+                        {/* Ready to Serve Column (Replaces Preparing focus for Waiter) */}
                         {user?.role !== 'COUNTER' && (
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-semibold flex items-center gap-2">
-                                        <ChefHat className="h-5 w-5 text-blue-500" /> Preparing
+                                        <ChefHat className="h-5 w-5 text-blue-500" /> {user?.role === 'ADMIN' ? 'Prep / Ready' : 'Ready to Serve'}
                                     </h2>
-                                    <Badge variant="secondary">{preparingOrders.length}</Badge>
+                                    <Badge variant="secondary">{readyOrders.length + (user?.role === 'ADMIN' ? preparingOrders.length : 0)}</Badge>
                                 </div>
-                                {preparingOrders.map(order => (
+                                {/* Admin sees preparing, Waiter only sees READY usually, but let's show both but different actions */}
+                                {user?.role === 'ADMIN' && preparingOrders.map(order => (
+                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                ))}
+                                {readyOrders.map(order => (
                                     <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
                                 ))}
                             </div>
@@ -348,7 +416,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served / To Pay
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served {user?.role === 'COUNTER' ? '/ To Pay' : ''}
                                 </h2>
                                 <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
                             </div>
@@ -374,6 +442,28 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                                     <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-md py-1 px-3 w-full justify-center">
                                         {req.type.replace('_', ' ')}
                                     </Badge>
+
+                                    {/* Voice Order Player */}
+                                    {req.type === 'VOICE_ORDER' && req.audioData && (
+                                        <div className="mt-4 flex flex-col gap-2">
+                                            <audio
+                                                controls
+                                                src={req.audioData}
+                                                className="w-full h-8"
+                                            />
+                                            <p className="text-xs text-center text-muted-foreground">Listen and create order</p>
+                                        </div>
+                                    )}
+
+                                    {/* Smart Waiter Assignment Info */}
+                                    {req.assignedToUserId && (
+                                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                                            {req.assignedToUserId === (user as any)?.id ?
+                                                <span className="text-green-600 font-bold">Assigned to YOU</span> :
+                                                `Assigned to Staff`
+                                            }
+                                        </p>
+                                    )}
                                 </CardContent>
                                 <CardFooter className="gap-2">
                                     <Button size="sm" variant="outline" className="w-full flex-1" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
@@ -422,6 +512,11 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                         <div className="mt-4">
                             <TableManager userRole={user?.role} orders={orders} />
                         </div>
+                    </div>
+                </TabsContent>
+                <TabsContent value="devices">
+                    <div className="mt-4">
+                        <DeviceManager />
                     </div>
                 </TabsContent>
             </Tabs>

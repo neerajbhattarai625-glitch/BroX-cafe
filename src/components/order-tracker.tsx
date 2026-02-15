@@ -14,11 +14,44 @@ export function OrderTracker() {
 
         const checkStatus = async () => {
             try {
-                const res = await fetch('/api/orders')
+                const res = await fetch('/api/orders', { cache: 'no-store' })
                 if (!res.ok) return
-                const orders = (await res.json()) as Order[]
+                const allOrders = (await res.json()) as Order[]
 
-                const myOrders = orders.filter((o) => myOrderIds.includes(o.id))
+                console.log("OrderTracker: Fetched orders", allOrders.length);
+                console.log("OrderTracker: My IDs", myOrderIds);
+
+                const myOrders = allOrders.filter((o) => myOrderIds.includes(o.id))
+                console.log("OrderTracker: My Matched Orders", myOrders);
+
+                // Check for Auto-Logout Condition (ALL orders PAID)
+                if (myOrders.length > 0) {
+                    const allPaid = myOrders.every(o => o.paymentStatus === 'PAID');
+
+                    if (allPaid) {
+                        const alreadyTriggered = sessionStorage.getItem('logout_triggered');
+                        if (!alreadyTriggered) {
+                            sessionStorage.setItem('logout_triggered', 'true');
+                            toast.success("Payment Received! 🎉", {
+                                description: "Thank you for visiting! You will be redirected shortly.",
+                                duration: 5000
+                            });
+
+                            setTimeout(async () => {
+                                try {
+                                    await fetch('/api/logout', { method: 'POST' });
+                                    useCartStore.getState().clearCart(); // Clear client store
+                                    // Remove the flag so next visit is clean
+                                    sessionStorage.removeItem('logout_triggered');
+                                    window.location.href = '/thank-you';
+                                } catch (e) {
+                                    console.error("Logout failed", e);
+                                    window.location.href = '/thank-you';
+                                }
+                            }, 4000); // 4 seconds delay
+                        }
+                    }
+                }
 
                 myOrders.forEach((order) => {
                     const prevStatus = previousStatuses.current[order.id]

@@ -40,9 +40,24 @@ export async function GET(request: Request) {
             }
         })
 
+        const tableStats = await prisma.order.groupBy({
+            by: ['tableNo'],
+            _count: { id: true },
+            _sum: { total: true },
+            where: {
+                paymentStatus: 'PAID',
+                status: { not: 'CANCELLED' }
+            }
+        });
+
         return NextResponse.json({
             daily: { total: dailySales._sum.total || 0, count: dailySales._count.id || 0 },
-            monthly: { total: monthlySales._sum.total || 0, count: monthlySales._count.id || 0 }
+            monthly: { total: monthlySales._sum.total || 0, count: monthlySales._count.id || 0 },
+            tableStats: tableStats.map(t => ({
+                tableNo: t.tableNo,
+                bookings: t._count.id,
+                revenue: t._sum.total || 0
+            }))
         })
 
     } catch (error) {

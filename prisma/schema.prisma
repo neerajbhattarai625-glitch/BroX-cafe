@@ -24,13 +24,7 @@ model Order {
   location      String?
 }
 
-model ServiceRequest {
-  id        String   @id @default(uuid())
-  tableNo   String
-  type      String
-  status    String
-  createdAt DateTime @default(now())
-}
+
 
 model Review {
   id        String   @id @default(uuid())
@@ -61,12 +55,43 @@ model MenuItem {
   category    Category @relation(fields: [categoryId], references: [id])
 }
 
+
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
   role      String   @default("STAFF")
   createdAt DateTime @default(now())
+  
+  // Location Tracking
+  lat       Float?
+  lng       Float?
+  lastActiveAt DateTime?
+  serviceRequests ServiceRequest[]
+}
+
+model BlockedDevice {
+  id        String   @id @default(uuid())
+  deviceId  String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model ServiceRequest {
+  id              String   @id @default(uuid())
+  tableNo         String
+  type            String
+  status          String
+  createdAt       DateTime @default(now())
+  
+  // Smart Waiter
+  userLat         Float?
+  userLng         Float?
+  assignedToUser  User?    @relation(fields: [assignedToUserId], references: [id])
+  assignedToUserId String?
+  
+  // Voice Order
+  audioData       String? // Base64 encoded audio
 }
 
 model Table {

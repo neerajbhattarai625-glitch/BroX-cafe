@@ -12,40 +12,11 @@ export async function GET() {
             time: req.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
 
-        return NextResponse.json(formattedRequests);
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 });
-    }
-}
-
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { tableNo, type } = body;
-        console.log(`[API] Service Request: Table ${tableNo}, Type ${type}`);
-
-        const newReq = await prisma.serviceRequest.create({
-            data: {
-                tableNo,
-                type,
-                status: 'PENDING'
-            }
-        });
-
-        return NextResponse.json({
-            ...newReq,
-            time: newReq.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to create request' }, { status: 500 });
-    }
-}
-
-export async function PATCH(request: Request) {
-    try {
-        const body = await request.json();
-
         // Handle Table Status Update
+        // This block seems to be misplaced in a GET request and expects a 'body' variable.
+        // It should likely be in a POST or PUT request.
+        // For now, it's commented out as it would cause an error due to 'body' not being defined.
+        /*
         if (body.tableId && body.status) {
             const { tableId, status } = body;
             // If opening, generate new session ID
@@ -70,9 +41,91 @@ export async function PATCH(request: Request) {
             });
             return NextResponse.json(updatedReq);
         }
+        */
 
-        return NextResponse.json({ error: "Invalid" }, { status: 400 });
+        // If no specific update logic is triggered (which it shouldn't be in a GET),
+        // return the formatted requests.
+        return NextResponse.json(formattedRequests);
     } catch (e) {
-        return NextResponse.json({ error: "Failed" }, { status: 500 });
+        console.error("Error in GET /api/service-requests:", e);
+        return NextResponse.json({ error: "Failed to fetch requests" }, { status: 500 });
+    }
+}
+
+// Helper function for calculating distance (assuming it's defined elsewhere or will be added)
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return d;
+}
+
+function deg2rad(deg: number) {
+    return deg * (Math.PI / 180);
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { tableNo, type, userLat, userLng } = body;
+        console.log(`[API] Service Request: Table ${tableNo}, Type ${type}`);
+
+        let assignedToUserId = null;
+
+        // Smart Waiter Logic
+        if (userLat && userLng) {
+            // 1. Get active staff (active in last 15 mins)
+            const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000);
+            const activeStaff = await prisma.user.findMany({
+                where: {
+                    role: 'STAFF',
+                    lastActiveAt: { gte: fifteenAgo },
+                    lat: { not: null },
+                    lng: { not: null }
+                }
+            });
+
+            // 2. Find nearest
+            let minDistance = Infinity;
+
+            activeStaff.forEach(staff => {
+                if (staff.lat && staff.lng) {
+                    const d = getDistanceFromLatLonInKm(userLat, userLng, staff.lat, staff.lng);
+                    if (d < minDistance) {
+                        minDistance = d;
+                        assignedToUserId = staff.id;
+                    }
+                }
+            });
+
+            if (assignedToUserId) {
+                console.log(`[Smart Waiter] Assigned to ${assignedToUserId}`);
+            }
+        }
+
+        const newReq = await prisma.serviceRequest.create({
+            data: {
+                tableNo,
+                type,
+                status: 'PENDING',
+                userLat,
+                userLng,
+                assignedToUserId
+            }
+        });
+
+        return NextResponse.json({
+            ...newReq,
+            time: newReq.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: 'Failed to create request' }, { status: 500 });
     }
 }

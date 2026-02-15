@@ -3,7 +3,7 @@ export type OrderItem = {
     qty: number;
 }
 
-export type OrderStatus = "PENDING" | "PREPARING" | "SERVED" | "PAID" | "CANCELLED";
+export type OrderStatus = "PENDING" | "PREPARING" | "READY" | "SERVED" | "PAID" | "CANCELLED";
 
 
 export interface Order {
@@ -25,9 +25,10 @@ export interface Order {
 export type ServiceRequest = {
     id: string;
     tableNo: string;
-    type: "CALL_WAITER" | "REQUEST_BILL" | "WATER";
-    status: "PENDING" | "COMPLETED" | "CANCELLED";
+    type: "CALL_WAITER" | "REQUEST_BILL" | "WATER" | "VOICE_ORDER";
+    status: string;
     time: string;
+    createdAt: Date;
 };
 
 export type Review = {

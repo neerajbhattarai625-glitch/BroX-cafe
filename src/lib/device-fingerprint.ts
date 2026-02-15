@@ -50,5 +50,14 @@ export function getOrCreateDeviceId(): string {
 
     const deviceId = generateDeviceFingerprint();
     localStorage.setItem('device_id', deviceId);
+    document.cookie = `device_id=${deviceId}; path=/; max-age=31536000; SameSite=Lax`;
     return deviceId;
+}
+
+export function ensureDeviceCookie() {
+    if (typeof window === 'undefined') return;
+    const id = getOrCreateDeviceId();
+    if (!document.cookie.includes('device_id=')) {
+        document.cookie = `device_id=${id}; path=/; max-age=31536000; SameSite=Lax`;
+    }
 }

@@ -143,9 +143,40 @@ export function CounterClient({ initialUser }: CounterClientProps) {
         }
     }
 
-    // Filter for Cash Pending
-    // method='CASH' and paymentStatus='PENDING'
-    const pendingPayments = orders.filter(o => o.paymentMethod === 'CASH' && o.paymentStatus === 'PENDING')
+    // Logic to filter orders: Only show if ALL orders for the table are SERVED (or PAID/CANCELLED)
+    // blocking statuses: PENDING, PREPARING, READY
+    const isTableFullyServed = (tableNo: string) => {
+        const tableOrders = orders.filter(o => o.tableNo === tableNo && o.status !== 'CANCELLED');
+        // If any order is NOT Served and NOT Paid, then it's blocking
+        // Actually, we want to know if everything is at least SERVED.
+        // So PENDING, PREPARING, READY are blocking.
+        // SERVED is fine. PAID is fine.
+        return !tableOrders.some(o => ['PENDING', 'PREPARING', 'READY'].includes(o.status));
+    }
+
+    // Filter for Cash Pending AND Table is Ready for Bill
+    // method='CASH' and paymentStatus='PENDING' and status='SERVED'
+    // AND isTableFullyServed
+    const pendingPayments = orders.filter(o => {
+        if (o.paymentMethod !== 'CASH' || o.paymentStatus !== 'PENDING') return false;
+        if (o.status !== 'SERVED') return false; // Must be served to pay
+        if (o.tableNo && !isTableFullyServed(o.tableNo)) return false;
+        return true;
+    });
+
+    // Notification logic for Counter: Only beep if a new order appears in the *eligible* pending payments
+    // We need to track eligible IDs specifically for notification
+    const eligiblePaymentIds = useRef<Set<string>>(new Set())
+
+    useEffect(() => {
+        if (isFirstLoad.current) return;
+
+        const newEligible = pendingPayments.filter(o => !eligiblePaymentIds.current.has(o.id));
+        if (newEligible.length > 0) {
+            playNotification("New Bill Ready for Payment!");
+            newEligible.forEach(o => eligiblePaymentIds.current.add(o.id));
+        }
+    }, [pendingPayments]) // Depend on the filtered list
 
     // Recent Sales (Paid orders)
     const paidOrders = orders.filter(o => o.paymentStatus === 'PAID')
@@ -173,14 +204,22 @@ export function CounterClient({ initialUser }: CounterClientProps) {
 
             <Tabs defaultValue="payments" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="payments">Pending Payments</TabsTrigger>
+                    <TabsTrigger value="payments">
+                        Pending Payments
+                        {pendingPayments.length > 0 && <Badge variant="destructive" className="ml-2 px-1 rounded-full">{pendingPayments.length}</Badge>}
+                    </TabsTrigger>
                     <TabsTrigger value="tables">Tables</TabsTrigger>
                     <TabsTrigger value="sales">Sales History</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="payments">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                        {pendingPayments.length === 0 && <p className="text-muted-foreground p-4">No pending cash payments.</p>}
+                        {pendingPayments.length === 0 && (
+                            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl">
+                                <h3 className="text-lg font-semibold mb-1">No Pending Bills</h3>
+                                <p className="text-muted-foreground">Bills will appear here only after all items for a table are served.</p>
+                            </div>
+                        )}
                         {pendingPayments.map(order => (
                             <Card key={order.id} className="border-l-4 border-l-orange-500">
                                 <CardHeader>
