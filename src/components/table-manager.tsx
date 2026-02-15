@@ -25,8 +25,17 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
     const [selectedTable, setSelectedTable] = useState<Table | null>(null)
 
     const fetchTables = async () => {
-        const res = await fetch('/api/tables')
-        if (res.ok) setTables(await res.json())
+        try {
+            const res = await fetch('/api/tables')
+            if (res.ok) {
+                const data = await res.json()
+                setTables(data)
+            } else {
+                console.error("Failed to fetch tables:", res.status)
+            }
+        } catch (error) {
+            console.error("Error fetching tables:", error)
+        }
     }
 
     useEffect(() => {
@@ -35,12 +44,21 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
 
     const addTable = async () => {
         if (!newTableNo) return
-        await fetch('/api/tables', {
-            method: 'POST',
-            body: JSON.stringify({ number: newTableNo })
-        })
-        setNewTableNo("")
-        fetchTables()
+        try {
+            const res = await fetch('/api/tables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number: newTableNo })
+            })
+            if (!res.ok) {
+                const err = await res.json()
+                alert(err.error || "Failed to add table")
+            }
+            setNewTableNo("")
+            fetchTables()
+        } catch (error) {
+            console.error("Error adding table:", error)
+        }
     }
 
     const deleteTable = async (id: string) => {
