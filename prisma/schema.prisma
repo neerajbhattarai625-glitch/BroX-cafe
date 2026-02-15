@@ -17,11 +17,11 @@ model Order {
   paymentMethod String?  @default("CASH")
   paymentStatus String   @default("PENDING")
   transactionId String?
-  deviceName    String?  // NEW: Track device name
-  location      String?  // NEW: Track geolocation
-  isOnlineOrder Boolean  @default(false) // NEW: Distinguish guest orders
-  customerPhone String?  // NEW: Contact info for pickup
   createdAt     DateTime @default(now())
+  customerPhone String?
+  deviceName    String?
+  isOnlineOrder Boolean  @default(false)
+  location      String?
 }
 
 model ServiceRequest {
