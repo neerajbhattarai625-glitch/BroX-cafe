@@ -29,6 +29,7 @@ export type ServiceRequest = {
     status: string;
     time: string;
     createdAt: Date;
+    audioData?: string; // Base64 audio
 };
 
 export type Review = {

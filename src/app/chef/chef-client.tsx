@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2 } from "lucide-react"
+import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2, Bell } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import type { Order } from "@/lib/types"
+import type { Order, ServiceRequest } from "@/lib/types"
 import { toast } from "sonner"
 
 export function ChefClient() {
     const [orders, setOrders] = useState<Order[]>([])
+    const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [prevPendingCount, setPrevPendingCount] = useState<number | null>(null)
+    const seenRequestIds = useRef<Set<string>>(new Set())
+    const isFirstLoad = useRef(true)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const router = useRouter()
 
@@ -21,30 +24,48 @@ export function ChefClient() {
         audioRef.current.load()
     }, [])
 
-    const playNotification = () => {
+    const playNotification = (msg = "New Order in Kitchen!") => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
             audioRef.current.play().catch(e => console.warn("Audio blocked:", e))
         }
-        toast.info("New Order in Kitchen!", { position: "top-center" })
+        toast.info(msg, { position: "top-center" })
     }
 
     const fetchData = async () => {
         try {
-            const res = await fetch('/api/orders')
-            if (res.ok) {
-                const data = await res.json()
+            const [ordersRes, requestsRes] = await Promise.all([
+                fetch('/api/orders'),
+                fetch('/api/requests')
+            ])
+
+            if (ordersRes.ok) {
+                const data = await ordersRes.json()
                 const pendingOrders = data.filter((o: Order) => o.status === 'PENDING')
 
-                if (prevPendingCount !== null && pendingOrders.length > prevPendingCount) {
-                    playNotification()
+                if (!isFirstLoad.current && prevPendingCount !== null && pendingOrders.length > prevPendingCount) {
+                    playNotification("New Order!")
                 }
 
                 setOrders(data)
                 setPrevPendingCount(pendingOrders.length)
             }
+
+            if (requestsRes.ok) {
+                const newReqs: ServiceRequest[] = await requestsRes.json();
+
+                if (!isFirstLoad.current) {
+                    const hasNewReq = newReqs.some(r => r.status === 'PENDING' && !seenRequestIds.current.has(r.id));
+                    if (hasNewReq) playNotification("New Service Request / Voice Order!");
+                }
+
+                newReqs.forEach(r => seenRequestIds.current.add(r.id));
+                setRequests(newReqs);
+            }
+
+            isFirstLoad.current = false
         } catch (error) {
-            console.error("Failed to fetch orders", error)
+            console.error("Failed to fetch data", error)
         }
     }
 
@@ -70,6 +91,19 @@ export function ChefClient() {
         }
     }
 
+    const handleRequestAction = async (id: string, action: 'COMPLETED' | 'CANCELLED') => {
+        setRequests(requests.map(r => r.id === id ? { ...r, status: action } : r));
+        try {
+            await fetch('/api/requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: action })
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     const handleLogout = async () => {
         await fetch('/api/logout', { method: 'POST' })
         router.push('/login')
@@ -77,6 +111,7 @@ export function ChefClient() {
 
     const pendingOrders = orders.filter(o => o.status === 'PENDING')
     const preparingOrders = orders.filter(o => o.status === 'PREPARING')
+    const uncompletedRequests = requests.filter(r => r.status === 'PENDING')
 
     return (
         <div className="min-h-screen bg-neutral-50 p-6 font-sans">
@@ -92,6 +127,10 @@ export function ChefClient() {
                 </div>
                 <div className="flex gap-3">
                     <ThemeToggle />
+                    <Button variant="outline" size="icon" title={`${uncompletedRequests.length} Active Requests`} className="rounded-xl border-neutral-200 dark:border-neutral-800 relative">
+                        <Bell className="h-5 w-5" />
+                        {uncompletedRequests.length > 0 && <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />}
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
                         <Volume2 className="h-5 w-5" />
                     </Button>
@@ -100,6 +139,46 @@ export function ChefClient() {
                     </Button>
                 </div>
             </div>
+
+            {/* Service Requests Section (Collapsible or floating? Let's put it at top if active) */}
+            {uncompletedRequests.length > 0 && (
+                <div className="max-w-7xl mx-auto mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <h3 className="font-bold text-yellow-800 mb-4 flex items-center gap-2">
+                        <Bell className="h-4 w-4" /> Service Requests & Voice Orders
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {uncompletedRequests.map(req => (
+                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm bg-white">
+                                <CardHeader className="pb-2 p-4">
+                                    <div className="flex justify-between items-center">
+                                        <CardTitle className="text-sm font-bold">Table {req.tableNo}</CardTitle>
+                                        <span className="text-xs text-muted-foreground">{req.time}</span>
+                                    </div>
+                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="mt-1">
+                                        {req.type.replace('_', ' ')}
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-0">
+                                    {req.type === 'VOICE_ORDER' && req.audioData && (
+                                        <div className="flex flex-col gap-2 mt-2">
+                                            <audio
+                                                controls
+                                                src={req.audioData}
+                                                className="w-full h-8"
+                                            />
+                                            <p className="text-[10px] text-center text-muted-foreground">Voice Message</p>
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2 mt-3">
+                                        <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
+                                        <Button size="sm" className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
                 {/* Column: PENDING */}

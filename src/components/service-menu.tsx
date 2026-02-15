@@ -77,6 +77,20 @@ export function ServiceMenu({ tableNo }: ServiceMenuProps) {
 
                 <div className="border-t my-1"></div>
 
+                <Button
+                    className="w-full justify-start gap-2 h-auto py-3 bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                    onClick={() => handleRequest('CALL_WAITER')}
+                    disabled={!!loading}
+                >
+                    <BellRing className="h-5 w-5" />
+                    <div className="flex flex-col items-start">
+                        <span className="font-bold">Call Waiter</span>
+                        <span className="text-xs text-red-100">Urgent Assistance</span>
+                    </div>
+                </Button>
+
+                <div className="border-t my-1"></div>
+
                 <VoiceRecorder onUpload={async (audioData) => {
                     await handleRequest('VOICE_ORDER', audioData)
                 }} disabled={!!loading} />

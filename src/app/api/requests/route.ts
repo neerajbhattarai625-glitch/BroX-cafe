@@ -73,8 +73,8 @@ function deg2rad(deg: number) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { tableNo, type, userLat, userLng } = body;
-        console.log(`[API] Service Request: Table ${tableNo}, Type ${type}`);
+        const { tableNo, type, userLat, userLng, audioData } = body;
+        console.log(`[API] Service Request: Table ${tableNo}, Type ${type}, Audio: ${audioData ? 'Yes' : 'No'}`);
 
         let assignedToUserId = null;
 
@@ -116,7 +116,8 @@ export async function POST(request: Request) {
                 status: 'PENDING',
                 userLat,
                 userLng,
-                assignedToUserId
+                assignedToUserId,
+                audioData // Save audio data
             }
         });
 

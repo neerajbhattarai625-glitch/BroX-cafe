@@ -154,17 +154,28 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
         // ADMIN should not hear sounds
         if (user?.role === 'ADMIN') return;
 
+        // Try to play the beep sound
         if (audioRef.current) {
             audioRef.current.currentTime = 0
-            audioRef.current.play().then(() => {
-                console.log("Audio played successfully")
-            }).catch(e => {
-                console.warn("Audio playback blocked or failed:", e)
-            })
+            audioRef.current.play().catch(e => console.warn("Audio playback blocked:", e))
         }
+
+        // Use SpeechSynthesis for LOUD announcement
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            utterance.volume = 1.0; // Max volume
+            window.speechSynthesis.speak(utterance);
+        }
+
         toast.info(message, {
-            duration: 3000,
-            position: "top-right"
+            duration: 5000,
+            position: "top-right",
+            action: {
+                label: "Dismiss",
+                onClick: () => window.speechSynthesis.cancel()
+            }
         })
     }
 
