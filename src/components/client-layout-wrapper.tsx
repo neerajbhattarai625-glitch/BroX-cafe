@@ -22,7 +22,8 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
                 const res = await fetch('/api/check-blocked');
                 const data = await res.json();
                 if (data.blocked) {
-                    router.replace('/blocked');
+                    const type = data.reason === 'VPN_OR_PROXY' ? 'geo' : 'manual';
+                    router.replace(`/blocked?type=${type}`);
                 }
             } catch (e) {
                 console.error("Block check failed", e);

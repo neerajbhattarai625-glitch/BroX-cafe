@@ -1,33 +1,39 @@
 "use client"
 
-import { Globe, ShieldAlert, MapPin } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { ShieldAlert, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function BlockedPage() {
+    const searchParams = useSearchParams();
+    const type = searchParams.get('type');
+    const isManual = type === 'manual';
+
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
             <div className="max-w-md w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="flex justify-center">
                     <div className="relative">
                         <div className="w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center animate-pulse">
-                            <Globe className="w-12 h-12 text-destructive" />
-                        </div>
-                        <div className="absolute -right-2 -bottom-2 bg-background rounded-full p-2 border shadow-lg">
-                            <ShieldAlert className="w-6 h-6 text-destructive" />
+                            <ShieldAlert className="w-12 h-12 text-destructive" />
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-4">
                     <h1 className="text-4xl font-black italic tracking-tighter uppercase text-foreground">
-                        Access Denied
+                        {isManual ? 'Access Restricted' : 'Access Denied'}
                     </h1>
                     <div className="p-6 bg-muted/30 rounded-3xl border border-border/50 space-y-4">
                         <p className="text-xl leading-relaxed text-destructive font-bold uppercase tracking-tight">
-                            Basterd! Don't even think you can access it outside Nepal by using VPN.
+                            {isManual
+                                ? "sorry to say but your device is blocked for some reason."
+                                : "Basterd! Don't even think you can access it outside Nepal by using VPN."}
                         </p>
                         <p className="text-sm text-muted-foreground italic">
-                            This application is strictly restricted to Nepal. VPN and Proxy connections are blocked.
+                            {isManual
+                                ? "Please contact the cafe administrator if you think this is a mistake."
+                                : "This application is strictly restricted to Nepal. VPN and Proxy connections are blocked."}
                         </p>
                     </div>
                 </div>

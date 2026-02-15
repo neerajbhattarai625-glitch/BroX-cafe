@@ -43,10 +43,10 @@ export function OrderTracker() {
                                     useCartStore.getState().clearCart(); // Clear client store
                                     // Remove the flag so next visit is clean
                                     sessionStorage.removeItem('logout_triggered');
-                                    window.location.href = '/thank-you';
+                                    window.location.href = '/';
                                 } catch (e) {
                                     console.error("Logout failed", e);
-                                    window.location.href = '/thank-you';
+                                    window.location.href = '/';
                                 }
                             }, 4000); // 4 seconds delay
                         }

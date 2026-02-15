@@ -12,15 +12,16 @@ import { MENU_ITEMS as MOCK_ITEMS, CATEGORIES as MOCK_CATS } from "@/lib/data";
 import { useTheme } from "next-themes";
 import { useCartStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
-import { Moon, Sun, ShoppingBag, UtensilsCrossed, ChefHat, LogOut, Lock, MapPin, Clock, Phone } from "lucide-react";
+import { ChefHat, Scan, ShoppingBag, Phone, MapPin, Clock, Search, X, ChevronRight, Star, ArrowRight, Sun, Moon, UtensilsCrossed, LogOut, Lock, Menu as MenuIcon, PhoneCall } from "lucide-react";
+import { DailySpecialPopup } from "./daily-special-popup";
+import UserProfile from "./user-profile";
+import QRScannerModal from "./qr-scanner-modal";
 import { cn } from "@/lib/utils";
 import { useScroll, useTransform, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu as MenuIcon, Scan, PhoneCall } from "lucide-react";
-import { QRScannerModal } from "@/components/qr-scanner-modal";
 import { UserProfile } from "@/components/user-profile";
 
 // Ensure GSAP plugin is registered
@@ -57,6 +58,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
     const heroTextRef = useRef<HTMLDivElement>(null);
@@ -91,10 +93,12 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
     useEffect(() => {
         Promise.all([
             fetch('/api/categories').then(res => res.ok ? res.json() : []),
-            fetch('/api/menu').then(res => res.ok ? res.json() : [])
-        ]).then(([cats, items]) => {
+            fetch('/api/menu').then(res => res.ok ? res.json() : []),
+            fetch('/api/settings').then(res => res.ok ? res.json() : null)
+        ]).then(([cats, items, siteSettings]) => {
             setCategories(cats.length > 0 ? cats : MOCK_CATS);
             setMenuItems(items.length > 0 ? items : MOCK_ITEMS);
+            setSettings(siteSettings);
             setLoading(false);
         }).catch(err => {
             console.error("Failed to load menu", err);
@@ -156,6 +160,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
 
     return (
         <div ref={containerRef} className="min-h-screen bg-background text-foreground font-sans selection:bg-orange-500/30 overflow-x-hidden">
+            <DailySpecialPopup settings={settings} />
 
             {/* Header / Nav */}
             <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 h-16 transition-all duration-300">
@@ -165,9 +170,15 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
                     >
                         <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-                            <ChefHat className="w-5 h-5" />
+                            {settings?.logoImage ? (
+                                <img src={settings.logoImage} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                            ) : (
+                                <ChefHat className="w-5 h-5" />
+                            )}
                         </div>
-                        <h1 className="font-serif italic text-xl font-bold tracking-tight">Cafe Delight</h1>
+                        <h1 className="font-serif italic text-xl font-bold tracking-tight">
+                            {settings?.cafeName || 'Cafe Delight'}
+                        </h1>
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -205,7 +216,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
             <section className="hero-section relative h-[90vh] flex items-center justify-center text-center overflow-hidden">
                 <div className="parallax-bg absolute inset-0 z-0">
                     <Image
-                        src="/images/momo-buff.png"
+                        src={settings?.heroImage || "/images/momo-buff.png"}
                         alt="Delicious Food"
                         fill
                         className="object-cover opacity-90 dark:opacity-60"
@@ -216,10 +227,10 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
 
                 <div className="relative z-10 px-6 max-w-3xl mx-auto space-y-6" ref={heroTextRef}>
                     <p className="hero-text-reveal font-script text-3xl md:text-5xl text-orange-400 drop-shadow-md rotate-[-3deg]">
-                        {lang === 'en' ? 'Authentic Flavors' : 'अनिवार्य स्वाद'}
+                        {lang === 'en' ? (settings?.cafeTagline || 'Authentic Flavors') : (settings?.cafeTaglineNp || 'अनिवार्य स्वाद')}
                     </p>
                     <h2 className="hero-text-reveal font-serif italic text-6xl md:text-8xl font-black text-white drop-shadow-2xl leading-[0.9]">
-                        {lang === 'en' ? 'Taste of Nepal' : 'नेपालको स्वाद'}
+                        {lang === 'en' ? (settings?.cafeName || 'Taste of Nepal') : (settings?.cafeNameNp || 'नेपालको स्वाद')}
                     </h2>
                     <p className="hero-text-reveal text-white/90 text-lg md:text-xl font-light max-w-lg mx-auto leading-relaxed drop-shadow-lg">
                         {lang === 'en' ? 'Experience the finest Momos, savory Noodles, and refreshing drinks.' : 'सहरकै उत्कृष्ट मोमो, चाउमिन र पेय पदार्थको अनुभव लिनुहोस्।'}
@@ -248,10 +259,10 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                 {/* Info Bar at Bottom of Hero */}
                 <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-6 text-white/80 text-xs md:text-sm font-medium">
                     <div className="flex items-center gap-1.5 backdrop-blur-md bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
-                        <Clock className="w-3.5 h-3.5" /> 10am - 10pm
+                        <Clock className="w-3.5 h-3.5" /> {settings?.openHours || '10am - 10pm'}
                     </div>
                     <div className="flex items-center gap-1.5 backdrop-blur-md bg-black/20 px-3 py-1.5 rounded-full border border-white/10 cursor-pointer hover:bg-black/30 transition-colors">
-                        <MapPin className="w-3.5 h-3.5" /> Lakeside, Pokhara
+                        <MapPin className="w-3.5 h-3.5" /> {settings?.location || 'Lakeside, Pokhara'}
                     </div>
                 </div>
             </section>

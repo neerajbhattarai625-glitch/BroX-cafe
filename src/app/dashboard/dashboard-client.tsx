@@ -19,6 +19,7 @@ import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
 import { TableManager } from "@/components/table-manager"
 import { DeviceManager } from "@/components/device-manager"
+import { SettingsManager } from "@/components/settings-manager"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -134,22 +135,30 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
+    const [settings, setSettings] = useState<any>(null)
     const seenOrderIds = useRef<Set<string>>(new Set())
     const seenRequestIds = useRef<Set<string>>(new Set())
     const seenServedIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
-    // Initialize with prop, no loading state needed for user
+
+    // Initialize with prop
     const [user, setUser] = useState<{ role: string } | null>(initialUser)
 
-    // Loading state only for data fetching, but user is already known
-    // We can show a skeleton for data, but the LAYOUT (tabs) will be correct immediately
     const [dataLoading, setDataLoading] = useState(true)
     const audioRef = useRef<HTMLAudioElement | null>(null)
 
     useEffect(() => {
+        fetchSettings()
         audioRef.current = new Audio("/sounds/notification.mp3")
         audioRef.current.load()
     }, [])
+
+    const fetchSettings = async () => {
+        try {
+            const res = await fetch('/api/settings')
+            if (res.ok) setSettings(await res.json())
+        } catch (e) { console.error(e) }
+    }
 
     const playNotification = (message = "New Order Received!") => {
         // ADMIN should not hear sounds
@@ -252,8 +261,6 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                         } else {
                             // Generic notification for others (optional to silence or keep)
                             if (user?.role === 'ADMIN') return; // Silence admin
-                            // Maybe only play soft sound for others? 
-                            // For now, keep standard
                             playNotification();
                         }
                     }
@@ -329,7 +336,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
 
     const pendingOrders = orders.filter(o => o.status === "PENDING")
     const preparingOrders = orders.filter(o => o.status === "PREPARING")
-    const readyOrders = orders.filter(o => o.status === "READY") // New column for Waiter
+    const readyOrders = orders.filter(o => o.status === "READY")
     const uncompletedRequests = requests.filter(r => r.status === 'PENDING');
 
     return (
@@ -337,10 +344,10 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                        {user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')}
+                        {settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard'))}
                     </h1>
                     <p className="text-muted-foreground">
-                        {user?.role === 'COUNTER' ? 'Manage payments and view orders' : 'Manage active orders and service requests'}
+                        {user?.role === 'COUNTER' ? 'Manage payments and view orders' : `Manage ${settings?.cafeName || 'Cafe'} orders and service requests`}
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
@@ -392,6 +399,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                             <TabsTrigger value="menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Menu</TabsTrigger>
                             <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Sales & Analytics</TabsTrigger>
                             <TabsTrigger value="devices" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Devices</TabsTrigger>
+                            <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Settings</TabsTrigger>
                         </>
                     )}
                     {user?.role !== 'COUNTER' && (
@@ -540,6 +548,11 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                 <TabsContent value="devices">
                     <div className="mt-4">
                         <DeviceManager />
+                    </div>
+                </TabsContent>
+                <TabsContent value="settings">
+                    <div className="mt-4">
+                        <SettingsManager />
                     </div>
                 </TabsContent>
             </Tabs>

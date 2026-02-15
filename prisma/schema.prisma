@@ -51,7 +51,7 @@ model MenuItem {
   isAvailable Boolean  @default(true)
   categoryId  String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
   category    Category @relation(fields: [categoryId], references: [id])
 }
 
@@ -63,7 +63,7 @@ model User {
   role      String   @default("STAFF")
   displayName String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
   
   // Location Tracking
   lat       Float?
@@ -104,7 +104,7 @@ model Table {
   deviceId         String?
   sessionStartedAt DateTime?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  updatedAt        DateTime  @default(now()) @updatedAt
 }
 
 model DeviceStats {
@@ -116,7 +116,7 @@ model DeviceStats {
   lastVisit   DateTime @default(now())
   badges      String?  // JSON string of badges e.g. ["Momo Master", "Early Bird"]
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Reward {
@@ -127,5 +127,26 @@ model Reward {
   image       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model SiteSettings {
+  id                      String   @id @default("global")
+  cafeName                String   @default("Cafe Delight")
+  cafeTagline             String   @default("Authentic Flavors")
+  cafeNameNp              String   @default("क्याफे डिलाइट")
+  cafeTaglineNp           String   @default("अनिवार्य स्वाद")
+  heroImage               String   @default("/images/momo-buff.png")
+  logoImage               String?
+  openHours               String   @default("10am - 10pm")
+  location                String   @default("Lakeside, Pokhara")
+  phone                   String?
+  
+  // Daily Special
+  showDailySpecial        Boolean  @default(false)
+  dailySpecialTitle       String?
+  dailySpecialDescription String?
+  dailySpecialImage       String?
+  
+  updatedAt               DateTime @default(now()) @updatedAt
 }

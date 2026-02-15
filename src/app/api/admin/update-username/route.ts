@@ -24,16 +24,32 @@ export async function PATCH(request: Request) {
         }
 
         const body = await request.json();
-        const { userId, displayName } = body;
+        const { userId, username, displayName } = body;
 
-        if (!userId || !displayName) {
+        if (!userId || !displayName || !username) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // Update user's display name
+        // Check if username already exists for OTHER users
+        if (username) {
+            const existingUser = await prisma.user.findFirst({
+                where: {
+                    username,
+                    id: { not: userId }
+                }
+            });
+            if (existingUser) {
+                return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
+            }
+        }
+
+        // Update user
         const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: { displayName }
+            data: {
+                username: username.trim(),
+                displayName: displayName.trim()
+            }
         });
 
         return NextResponse.json({
