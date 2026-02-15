@@ -1,12 +1,12 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { calculateTier } from '@/lib/tier-system';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { deviceId } = body;
+        const { deviceId, totalSpend } = body;
 
         if (!deviceId) {
             return NextResponse.json({ error: 'Device ID required' }, { status: 400 });
@@ -18,13 +18,26 @@ export async function POST(request: Request) {
             create: {
                 deviceId,
                 totalVisits: 1,
+                totalSpend: totalSpend || 0,
+                tier: 'BRONZE',
                 lastVisit: new Date(),
             },
             update: {
                 totalVisits: { increment: 1 },
+                totalSpend: totalSpend ? { increment: totalSpend } : undefined,
                 lastVisit: new Date(),
             },
         });
+
+        // Calculate and update tier
+        const newTier = calculateTier(stats.totalVisits, stats.totalSpend);
+        if (newTier !== stats.tier) {
+            await prisma.deviceStats.update({
+                where: { deviceId },
+                data: { tier: newTier }
+            });
+            stats.tier = newTier;
+        }
 
         return NextResponse.json(stats);
     } catch (error) {
@@ -46,15 +59,19 @@ export async function GET(request: Request) {
             where: { deviceId }
         });
 
-        // Calculate eligible rewards here or in UI?
-        // Let's return stats and maybe available rewards
-
         const rewards = await prisma.reward.findMany({
             where: { isActive: true },
             orderBy: { cost: 'asc' }
         });
 
-        return NextResponse.json({ stats, rewards });
+        // Add tier progress if stats exist
+        let tierProgress = null;
+        if (stats) {
+            const { getTierProgress } = await import('@/lib/tier-system');
+            tierProgress = getTierProgress(stats.totalVisits, stats.totalSpend);
+        }
+
+        return NextResponse.json({ stats, rewards, tierProgress });
     } catch (error) {
         console.error("Error fetching stats:", error);
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
