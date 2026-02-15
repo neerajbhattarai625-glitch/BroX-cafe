@@ -102,3 +102,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to create request' }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request) {
+    try {
+        const body = await request.json();
+        const { id, status } = body;
+
+        if (!id || !status) {
+            return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
+        }
+
+        const updatedRequest = await prisma.serviceRequest.update({
+            where: { id },
+            data: { status }
+        });
+
+        return NextResponse.json({
+            ...updatedRequest,
+            time: updatedRequest.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+    } catch (error) {
+        console.error('PATCH /api/requests error:', error);
+        return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
+    }
+}

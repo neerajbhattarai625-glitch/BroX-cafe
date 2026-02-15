@@ -343,6 +343,16 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
+                    {user?.role === 'ADMIN' && (
+                        <Button
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/staff')}
+                            className="gap-2"
+                        >
+                            <ChefHat className="h-4 w-4" />
+                            <span className="hidden md:inline">Staff Management</span>
+                        </Button>
+                    )}
                     <ThemeToggle />
                     {user?.role !== 'ADMIN' && (
                         <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
