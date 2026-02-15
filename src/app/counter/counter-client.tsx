@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut, Volume2 } from "lucide-react" // Banknote icon
 import type { Order } from "@/lib/types" // Ensure types are updated if needed
+import { TableManager } from "@/components/table-manager"
 import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
 import { toast } from "sonner"
 
@@ -17,7 +18,9 @@ interface CounterClientProps {
 
 export function CounterClient({ initialUser }: CounterClientProps) {
     const [orders, setOrders] = useState<Order[]>([])
-    const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null)
+    const seenOrderIds = useRef<Set<string>>(new Set())
+    const seenServedIds = useRef<Set<string>>(new Set())
+    const isFirstLoad = useRef(true)
     const audioRef = useRef<HTMLAudioElement | null>(null)
 
     useEffect(() => {
@@ -25,20 +28,16 @@ export function CounterClient({ initialUser }: CounterClientProps) {
         audioRef.current.load()
     }, [])
 
-    const playNotification = () => {
+    const playNotification = (message = "New Order Received!") => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
             audioRef.current.play().then(() => {
                 console.log("Audio played successfully")
             }).catch(e => {
                 console.warn("Audio playback blocked or failed:", e)
-                toast.error("New Order! (Sound blocked by browser - click anywhere to enable)", {
-                    duration: 5000,
-                    position: "top-center"
-                })
             })
         }
-        toast.info("New Order Received!", {
+        toast.info(message, {
             duration: 3000,
             position: "top-right"
         })
@@ -60,13 +59,26 @@ export function CounterClient({ initialUser }: CounterClientProps) {
         try {
             const res = await fetch('/api/orders')
             if (res.ok) {
-                const data = await res.json()
-                // Play sound if new order arrived
-                if (prevOrderCount !== null && data.length > prevOrderCount) {
-                    playNotification()
+                const data: Order[] = await res.json()
+
+                if (!isFirstLoad.current) {
+                    // 1. Check for new PENDING orders
+                    const hasNewOrder = data.some(o => o.status === 'PENDING' && !seenOrderIds.current.has(o.id));
+                    if (hasNewOrder) playNotification("New Customer Order!");
+
+                    // 2. Check for newly SERVED orders (Ready from kitchen)
+                    const hasNewServed = data.some(o => o.status === 'SERVED' && !seenServedIds.current.has(o.id));
+                    if (hasNewServed) playNotification("Order Ready in Kitchen!");
                 }
+
+                // Update seen IDs
+                data.forEach(o => {
+                    seenOrderIds.current.add(o.id)
+                    if (o.status === 'SERVED') seenServedIds.current.add(o.id)
+                })
+
                 setOrders(data)
-                setPrevOrderCount(data.length)
+                isFirstLoad.current = false
             }
         } catch (error) {
             console.error("Failed to fetch orders", error)
@@ -140,6 +152,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
             <Tabs defaultValue="payments" className="w-full">
                 <TabsList>
                     <TabsTrigger value="payments">Pending Payments</TabsTrigger>
+                    <TabsTrigger value="tables">Tables</TabsTrigger>
                     <TabsTrigger value="sales">Sales History</TabsTrigger>
                 </TabsList>
 
@@ -169,6 +182,12 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                                 </CardFooter>
                             </Card>
                         ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="tables">
+                    <div className="mt-4">
+                        <TableManager userRole={initialUser.role} orders={orders} />
                     </div>
                 </TabsContent>
 

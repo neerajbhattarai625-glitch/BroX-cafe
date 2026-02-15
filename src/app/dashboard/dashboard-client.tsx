@@ -125,6 +125,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const [reviews, setReviews] = useState<Review[]>([])
     const seenOrderIds = useRef<Set<string>>(new Set())
     const seenRequestIds = useRef<Set<string>>(new Set())
+    const seenServedIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
     // Initialize with prop, no loading state needed for user
     const [user, setUser] = useState<{ role: string } | null>(initialUser)
@@ -139,20 +140,16 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
         audioRef.current.load()
     }, [])
 
-    const playNotification = () => {
+    const playNotification = (message = "New Order Received!") => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
             audioRef.current.play().then(() => {
                 console.log("Audio played successfully")
             }).catch(e => {
                 console.warn("Audio playback blocked or failed:", e)
-                toast.error("New Order! (Sound blocked by browser - click anywhere to enable)", {
-                    duration: 5000,
-                    position: "top-center"
-                })
             })
         }
-        toast.info("New Order Received!", {
+        toast.info(message, {
             duration: 3000,
             position: "top-right"
         })
@@ -187,14 +184,20 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             if (orderRes.ok) {
                 const newOrders: Order[] = await orderRes.json();
 
-                // Play sound for brand new orders only
+                // Play sound for brand new orders or served orders
                 if (!isFirstLoad.current) {
                     const hasNewOrder = newOrders.some(o => o.status === 'PENDING' && !seenOrderIds.current.has(o.id));
-                    if (hasNewOrder) playNotification();
+                    if (hasNewOrder) playNotification("New Customer Order!");
+
+                    const hasNewServed = newOrders.some(o => o.status === 'SERVED' && !seenServedIds.current.has(o.id));
+                    if (hasNewServed) playNotification("Order Ready in Kitchen!");
                 }
 
                 // Update seen IDs
-                newOrders.forEach(o => seenOrderIds.current.add(o.id));
+                newOrders.forEach(o => {
+                    seenOrderIds.current.add(o.id)
+                    if (o.status === 'SERVED') seenServedIds.current.add(o.id)
+                });
                 setOrders(newOrders);
             }
 
