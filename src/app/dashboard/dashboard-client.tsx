@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, ChefHat, Bell, LogOut, ShieldAlert, MapPin, Volume2 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import type { ServiceRequest, Review, Order, OrderStatus } from "@/lib/types"
 import { MenuManager } from "@/components/menu-manager/menu-manager"
 import { SalesSummary } from "@/components/sales-summary"
@@ -270,6 +271,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
+                    <ThemeToggle />
                     <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
                         <Volume2 className="h-4 w-4" />
                     </Button>

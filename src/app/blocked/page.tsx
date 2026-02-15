@@ -20,14 +20,14 @@ export default function BlockedPage() {
 
                 <div className="space-y-4">
                     <h1 className="text-4xl font-black italic tracking-tighter uppercase text-foreground">
-                        Access Restricted
+                        Access Denied
                     </h1>
                     <div className="p-6 bg-muted/30 rounded-3xl border border-border/50 space-y-4">
-                        <p className="text-lg leading-relaxed text-muted-foreground font-medium">
-                            This app is currently available only in <span className="text-foreground font-bold underline decoration-orange-500 underline-offset-4">Nepal</span>.
+                        <p className="text-xl leading-relaxed text-destructive font-bold uppercase tracking-tight">
+                            Basterd! Don't even think you can access it outside Nepal by using VPN.
                         </p>
                         <p className="text-sm text-muted-foreground italic">
-                            A Nepali network address is required to access our services. If you are using a VPN, please disconnect and try again.
+                            This application is strictly restricted to Nepal. VPN and Proxy connections are blocked.
                         </p>
                     </div>
                 </div>

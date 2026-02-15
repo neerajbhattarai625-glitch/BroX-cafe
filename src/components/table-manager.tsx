@@ -83,6 +83,24 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
         }
 
         const newStatus = table.status === 'OPEN' ? 'CLOSED' : 'OPEN'
+
+        // Counter staff can only close tables
+        if (userRole === 'COUNTER') {
+            if (newStatus === 'OPEN') {
+                alert("Counter staff can only close tables, not open them.");
+                return;
+            }
+
+            // Check if all orders for this table are paid
+            const tableOrders = orders.filter(o => o.tableNo === table.number && o.status !== 'CANCELLED');
+            const hasUnpaidOrders = tableOrders.some(o => o.paymentStatus !== 'PAID');
+
+            if (hasUnpaidOrders) {
+                alert(`Cannot close table. There are unpaid orders for Table ${table.number}. Please confirm all payments first.`);
+                return;
+            }
+        }
+
         await fetch('/api/tables', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -172,6 +190,7 @@ export function TableManager({ userRole, orders = [] }: { userRole?: string, ord
                                 className={table.status === 'OPEN' ? "text-green-600" : "text-gray-400"}
                                 onClick={() => toggleStatus(table)}
                                 title={table.status === 'OPEN' ? "Close Table" : "Open Table"}
+                                disabled={userRole === 'COUNTER' && table.status === 'CLOSED'}
                             >
                                 <Power className="h-4 w-4" />
                             </Button>

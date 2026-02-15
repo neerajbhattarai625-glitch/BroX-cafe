@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, ChefHat, CheckCircle2, Play, LogOut, Volume2 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import type { Order } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -90,7 +91,8 @@ export function ChefClient() {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200">
+                    <ThemeToggle />
+                    <Button variant="outline" size="icon" onClick={() => playNotification()} className="rounded-xl border-neutral-200 dark:border-neutral-800">
                         <Volume2 className="h-5 w-5" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50">
@@ -207,8 +209,8 @@ function OrderCard({ order, actionLabel, actionIcon, onAction, colorClass, badge
             <CardFooter className="bg-neutral-50/50 pt-3 pb-3 border-t">
                 <Button
                     className={`w-full h-12 rounded-xl font-bold gap-2 text-white shadow-lg transition-transform active:scale-[0.98] ${variant === "blue"
-                            ? "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
-                            : "bg-orange-600 hover:bg-orange-700 shadow-orange-100"
+                        ? "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
+                        : "bg-orange-600 hover:bg-orange-700 shadow-orange-100"
                         }`}
                     onClick={onAction}
                 >

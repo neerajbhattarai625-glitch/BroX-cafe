@@ -4,16 +4,22 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname
 
-    // 1. Geo-blocking: Nepal Only
+    // 1. Geo-blocking & VPN Detection
     const country = request.headers.get("x-vercel-ip-country")
+    const forwardedFor = request.headers.get("x-forwarded-for")
 
-    // Skip geo-check for public assets if needed, but here we want to block the whole site
     // allow /blocked to be viewed
     if (path === "/blocked") return NextResponse.next()
 
-    // In development, country might be null
-    if (process.env.NODE_ENV === 'production' && country && country !== 'NP') {
-        return NextResponse.redirect(new URL("/blocked", request.url))
+    const isProduction = process.env.NODE_ENV === 'production'
+    const isNotNepal = country && country !== 'NP'
+
+    // Potentially detect VPN (e.g. suspicious multiple hops or known non-NP IP in prod)
+    // Vercel handles most of this via geo-headers, but we can be stricter.
+    if (isProduction) {
+        if (isNotNepal || (forwardedFor && forwardedFor.split(',').length > 2)) {
+            return NextResponse.redirect(new URL("/blocked", request.url))
+        }
     }
 
     // 2. Dashboard & Counter Auth

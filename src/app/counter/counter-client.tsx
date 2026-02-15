@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, CheckCircle2, AlertCircle, Banknote, LogOut, Volume2 } from "lucide-react" // Banknote icon
+import { ThemeToggle } from "@/components/theme-toggle"
 import type { Order } from "@/lib/types" // Ensure types are updated if needed
 import { TableManager } from "@/components/table-manager"
 import { SalesSummary } from "@/components/sales-summary" // Reuse if possible, or adapt
@@ -137,6 +138,7 @@ export function CounterClient({ initialUser }: CounterClientProps) {
                     <p className="text-muted-foreground">Manage payments and view sales</p>
                 </div>
                 <div className="flex gap-2 items-center">
+                    <ThemeToggle />
                     <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
                         <Volume2 className="h-4 w-4" />
                     </Button>
