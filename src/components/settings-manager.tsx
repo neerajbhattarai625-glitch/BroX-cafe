@@ -23,7 +23,11 @@ export function SettingsManager() {
         logoImage: "",
         openHours: "",
         location: "",
-        phone: ""
+        phone: "",
+        showDailySpecial: false,
+        dailySpecialTitle: "",
+        dailySpecialDescription: "",
+        dailySpecialImage: ""
     })
 
     useEffect(() => {
@@ -44,7 +48,11 @@ export function SettingsManager() {
                     logoImage: data.logoImage || "",
                     openHours: data.openHours || "",
                     location: data.location || "",
-                    phone: data.phone || ""
+                    phone: data.phone || "",
+                    showDailySpecial: data.showDailySpecial || false,
+                    dailySpecialTitle: data.dailySpecialTitle || "",
+                    dailySpecialDescription: data.dailySpecialDescription || "",
+                    dailySpecialImage: data.dailySpecialImage || ""
                 })
             }
         } catch (error) {
@@ -175,6 +183,73 @@ export function SettingsManager() {
                             </Label>
                             <Input id="phone" name="phone" value={settings.phone} onChange={handleChange} placeholder="+977..." />
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Daily Special Section */}
+                <Card className="md:col-span-2 border-orange-500/20 bg-orange-500/5">
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Star className="h-4 w-4 text-orange-500" /> Daily Special Popup
+                        </CardTitle>
+                        <CardDescription>Show a special offer or announcement to all visitors</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border/50">
+                            <div className="space-y-0.5">
+                                <Label className="text-base">Enable Popup</Label>
+                                <p className="text-xs text-muted-foreground italic">If enabled, guests will see this when they first visit</p>
+                            </div>
+                            <Switch
+                                checked={settings.showDailySpecial}
+                                onCheckedChange={(val: boolean) => setSettings(prev => ({ ...prev, showDailySpecial: val }))}
+                            />
+                        </div>
+
+                        {settings.showDailySpecial && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dailySpecialTitle">Special Title</Label>
+                                        <Input
+                                            id="dailySpecialTitle"
+                                            value={settings.dailySpecialTitle}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings(prev => ({ ...prev, dailySpecialTitle: e.target.value }))}
+                                            placeholder="Today's Special Momo!"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dailySpecialDescription">Description</Label>
+                                        <Textarea
+                                            id="dailySpecialDescription"
+                                            value={settings.dailySpecialDescription}
+                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSettings(prev => ({ ...prev, dailySpecialDescription: e.target.value }))}
+                                            placeholder="Get 20% off on all Buff Momos today..."
+                                            className="h-24"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dailySpecialImage">Special Image URL</Label>
+                                        <Input
+                                            id="dailySpecialImage"
+                                            value={settings.dailySpecialImage}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings(prev => ({ ...prev, dailySpecialImage: e.target.value }))}
+                                            placeholder="/images/special.jpg"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">High quality image for the popup background</p>
+                                    </div>
+                                    <div className="p-4 bg-background rounded-xl border border-dashed border-border flex items-center justify-center h-[120px]">
+                                        {settings.dailySpecialImage ? (
+                                            <img src={settings.dailySpecialImage} alt="Preview" className="h-full object-contain rounded" />
+                                        ) : (
+                                            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Image Preview</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -14,15 +14,14 @@ import { useCartStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Scan, ShoppingBag, Phone, MapPin, Clock, Search, X, ChevronRight, Star, ArrowRight, Sun, Moon, UtensilsCrossed, LogOut, Lock, Menu as MenuIcon, PhoneCall } from "lucide-react";
 import { DailySpecialPopup } from "./daily-special-popup";
-import UserProfile from "./user-profile";
-import QRScannerModal from "./qr-scanner-modal";
+import { UserProfile } from "@/components/user-profile";
+import { QRScannerModal } from "@/components/qr-scanner-modal";
 import { cn } from "@/lib/utils";
 import { useScroll, useTransform, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { UserProfile } from "@/components/user-profile";
 
 // Ensure GSAP plugin is registered
 if (typeof window !== "undefined") {

@@ -15,8 +15,15 @@ export async function GET() {
         }
 
         return NextResponse.json(settings);
-    } catch (error) {
-        console.error('Settings fetch error:', error);
-        return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Settings fetch error details:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+        });
+        return NextResponse.json({
+            error: 'Failed to fetch settings',
+            details: error.message
+        }, { status: 500 });
     }
 }

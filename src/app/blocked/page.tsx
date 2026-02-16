@@ -3,8 +3,9 @@
 import { useSearchParams } from "next/navigation"
 import { ShieldAlert, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Suspense } from "react"
 
-export default function BlockedPage() {
+function BlockedContent() {
     const searchParams = useSearchParams();
     const type = searchParams.get('type');
     const isManual = type === 'manual';
@@ -59,5 +60,17 @@ export default function BlockedPage() {
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px]" />
             </div>
         </div>
+    )
+}
+
+export default function BlockedPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+            </div>
+        }>
+            <BlockedContent />
+        </Suspense>
     )
 }
