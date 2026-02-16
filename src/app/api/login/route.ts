@@ -141,7 +141,7 @@ export async function POST(request: Request) {
                 user: {
                     id: user.id,
                     username: user.username,
-                    displayName: (user as any).displayName || user.username,
+                    displayName: user.displayName || user.username,
                     role: user.role
                 }
             });

@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         const { tableNo, type, userLat, userLng, audioData } = body;
         console.log(`[API] Service Request: Table ${tableNo}, Type ${type}, Audio: ${audioData ? 'Yes' : 'No'}`);
 
-        let assignedToUserId = null;
+        const assignedToUserId = null;
 
         // Smart Waiter Logic Removed as per user request (Broadcast mode)
         // Request will be unassigned and visible to all staff until picked up.

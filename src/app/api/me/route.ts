@@ -23,7 +23,7 @@ export async function GET() {
         }
 
         // DB user
-        const user = await (prisma.user as any).findUnique({
+        const user = await prisma.user.findUnique({
             where: { id: authCookie.value },
             select: {
                 id: true,

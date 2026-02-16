@@ -23,7 +23,7 @@ export async function GET() {
             }
         }
 
-        const users = await (prisma.user as any).findMany({
+        const users = await prisma.user.findMany({
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
