@@ -27,7 +27,9 @@ export function SettingsManager() {
         showDailySpecial: false,
         dailySpecialTitle: "",
         dailySpecialDescription: "",
-        dailySpecialImage: ""
+        dailySpecialImage: "",
+        dailySpecialPrice: "",
+        dailySpecialId: ""
     })
 
     useEffect(() => {
@@ -52,7 +54,9 @@ export function SettingsManager() {
                     showDailySpecial: data.showDailySpecial || false,
                     dailySpecialTitle: data.dailySpecialTitle || "",
                     dailySpecialDescription: data.dailySpecialDescription || "",
-                    dailySpecialImage: data.dailySpecialImage || ""
+                    dailySpecialImage: data.dailySpecialImage || "",
+                    dailySpecialPrice: data.dailySpecialPrice?.toString() || "",
+                    dailySpecialId: data.dailySpecialId || ""
                 })
             }
         } catch (error) {
@@ -217,6 +221,26 @@ export function SettingsManager() {
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings(prev => ({ ...prev, dailySpecialTitle: e.target.value }))}
                                             placeholder="Today's Special Momo!"
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dailySpecialPrice">Price (optional for ordering)</Label>
+                                        <Input
+                                            id="dailySpecialPrice"
+                                            type="number"
+                                            value={settings.dailySpecialPrice || ""}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings(prev => ({ ...prev, dailySpecialPrice: e.target.value }))}
+                                            placeholder="250"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dailySpecialId">Menu Item ID (to link to actual item)</Label>
+                                        <Input
+                                            id="dailySpecialId"
+                                            value={settings.dailySpecialId || ""}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings(prev => ({ ...prev, dailySpecialId: e.target.value }))}
+                                            placeholder="menu-uuid-here"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground italic">Link this to track inventory/orders correctly</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="dailySpecialDescription">Description</Label>

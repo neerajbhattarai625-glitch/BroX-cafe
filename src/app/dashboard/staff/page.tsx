@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import {
     ChefHat, Users, Banknote, ShieldCheck, RefreshCw,
-    Key, User, Eye, Activity, Clock
+    Key, User, Eye, Activity, Clock, UserCog
 } from "lucide-react"
+import { UpdateUsernameModal } from "@/components/update-username-modal"
 import type { Order, ServiceRequest } from "@/lib/types"
 
 interface SystemUser {
@@ -112,15 +113,15 @@ export default function AdminStaffPage() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <ShieldCheck className="h-8 w-8" />
-                        Staff Management & Monitoring
+                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                        <ShieldCheck className="h-6 w-6 md:h-8 md:w-8" />
+                        Staff Management
                     </h1>
-                    <p className="text-muted-foreground mt-2">Monitor staff dashboards and manage user accounts</p>
+                    <p className="text-muted-foreground text-sm mt-1">Monitor dashboards and manage user accounts</p>
                 </div>
-                <Button onClick={() => router.push('/dashboard')} variant="outline">
+                <Button onClick={() => router.push('/dashboard')} variant="outline" size="sm" className="w-fit">
                     Back to Dashboard
                 </Button>
             </div>
@@ -200,22 +201,22 @@ export default function AdminStaffPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
-                                    <p className="text-sm text-muted-foreground mb-1">Pending Orders</p>
-                                    <p className="text-3xl font-bold text-orange-600">
+                                    <p className="text-xs text-muted-foreground mb-1 uppercase font-bold">Pending</p>
+                                    <p className="text-2xl md:text-3xl font-bold text-orange-600">
                                         {orders.filter(o => o.status === 'PENDING').length}
                                     </p>
                                 </div>
                                 <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                                    <p className="text-sm text-muted-foreground mb-1">Preparing Orders</p>
-                                    <p className="text-3xl font-bold text-blue-600">
+                                    <p className="text-xs text-muted-foreground mb-1 uppercase font-bold">Preparing</p>
+                                    <p className="text-2xl md:text-3xl font-bold text-blue-600">
                                         {orders.filter(o => o.status === 'PREPARING').length}
                                     </p>
                                 </div>
                                 <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                                    <p className="text-sm text-muted-foreground mb-1">Active Requests</p>
-                                    <p className="text-3xl font-bold text-green-600">
+                                    <p className="text-xs text-muted-foreground mb-1 uppercase font-bold">Requests</p>
+                                    <p className="text-2xl md:text-3xl font-bold text-green-600">
                                         {requests.filter(r => r.status === 'PENDING').length}
                                     </p>
                                 </div>
@@ -245,31 +246,39 @@ export default function AdminStaffPage() {
                                     users.map((user) => (
                                         <div
                                             key={user.id}
-                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors gap-4"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                                                     <User className="h-5 w-5 text-primary" />
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold">{user.displayName || user.username}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold truncate">{user.displayName || user.username}</p>
                                                     <p className="text-sm text-muted-foreground">{user.role}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <code className="text-xs bg-muted px-2 py-1 rounded">
-                                                    ID: {user.username}
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                                <code className="text-[10px] bg-muted px-2 py-1 rounded uppercase font-bold">
+                                                    @{user.username}
                                                 </code>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleResetPassword(user.username)}
-                                                    disabled={resetting === user.username}
-                                                    className="gap-2"
-                                                >
-                                                    <RefreshCw className={`h-4 w-4 ${resetting === user.username ? 'animate-spin' : ''}`} />
-                                                    {resetting === user.username ? 'Resetting...' : 'Reset Password'}
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    <UpdateUsernameModal
+                                                        userId={user.id}
+                                                        currentUsername={user.username}
+                                                        currentDisplayName={user.displayName}
+                                                        onSuccess={fetchData}
+                                                    />
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleResetPassword(user.username)}
+                                                        disabled={resetting === user.username}
+                                                        className="h-9 px-3 gap-2"
+                                                    >
+                                                        <RefreshCw className={`h-4 w-4 ${resetting === user.username ? 'animate-spin' : ''}`} />
+                                                        <span className="hidden xs:inline">Reset</span>
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))

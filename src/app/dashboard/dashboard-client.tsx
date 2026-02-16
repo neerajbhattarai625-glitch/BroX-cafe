@@ -341,52 +341,53 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
 
     return (
         <div className="min-h-screen bg-muted/40 p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">
                         {user?.displayName ? `${user.displayName}'s Dashboard` : (settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')))}
                     </h1>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-sm truncate">
                         {user?.role === 'COUNTER' ? 'Manage payments and view orders' : `Manage ${settings?.cafeName || 'Cafe'} orders and service requests`}
                     </p>
                 </div>
-                <div className="flex gap-2 items-center">
-                    {user?.role === 'ADMIN' && (
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push('/dashboard/staff')}
-                            className="gap-2"
-                        >
-                            <ChefHat className="h-4 w-4" />
-                            <span className="hidden md:inline">Staff Management</span>
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <div className="flex items-center gap-2">
+                        {user?.role === 'ADMIN' && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push('/dashboard/staff')}
+                                className="h-9 gap-2"
+                            >
+                                <ChefHat className="h-4 w-4" />
+                                <span className="hidden lg:inline">Staff</span>
+                            </Button>
+                        )}
+                        <ChangePasswordModal />
+                        <ThemeToggle />
+                    </div>
+                    <div className="flex items-center gap-2 border-l pl-2 border-muted-foreground/20">
+                        {user?.role !== 'ADMIN' && (
+                            <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="h-9 w-9 bg-background">
+                                <Volume2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <Button variant="outline" size="sm" className="h-9 gap-2 bg-background">
+                            <Bell className="h-4 w-4" />
+                            <Badge variant="destructive" className="h-5 min-w-[20px] px-1 rounded-full">{uncompletedRequests.length}</Badge>
                         </Button>
-                    )}
-                    <ChangePasswordModal />
-                    <ThemeToggle />
-                    {user?.role !== 'ADMIN' && (
-                        <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="bg-background">
-                            <Volume2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9">
+                            <LogOut className="h-4 w-4 text-destructive" />
                         </Button>
-                    )}
-                    <Button variant="outline" className="gap-2 bg-background">
-                        <Bell className="h-4 w-4" />
-                        <span className="hidden md:inline">Requests</span>
-                        <Badge variant="destructive" className="ml-1 rounded-full px-1">{uncompletedRequests.length}</Badge>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                        <LogOut className="h-5 w-5" />
-                    </Button>
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <ChefHat className="h-6 w-6 text-primary" />
                     </div>
                 </div>
             </div>
 
             <Tabs defaultValue="orders" className="w-full">
-                <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0 justify-start mb-6">
-                    <TabsTrigger value="orders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Orders</TabsTrigger>
+                <TabsList className="flex w-full overflow-x-auto h-auto gap-2 bg-transparent p-0 justify-start mb-6 no-scrollbar pb-1">
+                    <TabsTrigger value="orders" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Orders</TabsTrigger>
                     {user?.role !== 'COUNTER' && (
-                        <TabsTrigger value="requests" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">
+                        <TabsTrigger value="requests" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">
                             Requests
                             {uncompletedRequests.length > 0 && (
                                 <span className="ml-2 w-2 h-2 rounded-full bg-destructive animate-pulse" />
@@ -395,15 +396,15 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
                     )}
                     {user?.role === 'ADMIN' && (
                         <>
-                            <TabsTrigger value="reviews" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Reviews</TabsTrigger>
-                            <TabsTrigger value="menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Menu</TabsTrigger>
-                            <TabsTrigger value="stats" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Sales & Analytics</TabsTrigger>
-                            <TabsTrigger value="devices" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Devices</TabsTrigger>
-                            <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Settings</TabsTrigger>
+                            <TabsTrigger value="reviews" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Reviews</TabsTrigger>
+                            <TabsTrigger value="menu" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Menu</TabsTrigger>
+                            <TabsTrigger value="stats" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Sales</TabsTrigger>
+                            <TabsTrigger value="devices" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Devices</TabsTrigger>
+                            <TabsTrigger value="settings" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Settings</TabsTrigger>
                         </>
                     )}
                     {user?.role !== 'COUNTER' && (
-                        <TabsTrigger value="tables" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Tables</TabsTrigger>
+                        <TabsTrigger value="tables" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Tables</TabsTrigger>
                     )}
                 </TabsList>
 

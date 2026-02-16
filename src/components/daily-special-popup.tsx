@@ -18,11 +18,17 @@ interface DailySpecialPopupProps {
         dailySpecialTitle?: string | null
         dailySpecialDescription?: string | null
         dailySpecialImage?: string | null
+        dailySpecialPrice?: number | null
+        dailySpecialId?: string | null
     } | null
 }
 
+import { useCartStore } from "@/lib/store"
+import { toast } from "sonner"
+
 export function DailySpecialPopup({ settings }: DailySpecialPopupProps) {
     const [open, setOpen] = useState(false)
+    const { addItem } = useCartStore()
 
     useEffect(() => {
         if (settings?.showDailySpecial && settings.dailySpecialTitle) {
@@ -42,6 +48,22 @@ export function DailySpecialPopup({ settings }: DailySpecialPopupProps) {
     const handleClose = () => {
         setOpen(false)
         sessionStorage.setItem('special_dismissed', 'true')
+    }
+
+    const handleOrderNow = () => {
+        if (!settings?.dailySpecialTitle) return
+
+        addItem({
+            id: settings.dailySpecialId || `special-${Date.now()}`,
+            name: `${settings.dailySpecialTitle} (Special)`,
+            price: settings.dailySpecialPrice || 0
+        })
+
+        toast.success("Special added to cart!", {
+            description: `${settings.dailySpecialTitle} has been added.`
+        })
+
+        handleClose()
     }
 
     return (
@@ -89,7 +111,7 @@ export function DailySpecialPopup({ settings }: DailySpecialPopupProps) {
                         <div className="flex gap-3">
                             <Button
                                 className="flex-1 rounded-full h-12 font-bold tracking-tight bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-500/20"
-                                onClick={handleClose}
+                                onClick={handleOrderNow}
                             >
                                 ORDER NOW
                             </Button>

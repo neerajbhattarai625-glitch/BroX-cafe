@@ -147,6 +147,8 @@ model SiteSettings {
   dailySpecialTitle       String?
   dailySpecialDescription String?
   dailySpecialImage       String?
+  dailySpecialPrice       Float?
+  dailySpecialId          String?  // Optional link to real menu item
   
   updatedAt               DateTime @default(now()) @updatedAt
 }

@@ -16,21 +16,32 @@ export async function PATCH(request: Request) {
         const {
             cafeName, cafeTagline, cafeNameNp, cafeTaglineNp,
             heroImage, logoImage, openHours, location, phone,
-            showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage
+            showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
+            dailySpecialPrice, dailySpecialId
         } = body;
+
+        const parsePrice = (price: any) => {
+            if (price === "" || price === null || price === undefined) return null;
+            const parsed = parseFloat(price);
+            return isNaN(parsed) ? null : parsed;
+        };
 
         const settings = await prisma.siteSettings.upsert({
             where: { id: 'global' },
             update: {
                 cafeName, cafeTagline, cafeNameNp, cafeTaglineNp,
                 heroImage, logoImage, openHours, location, phone,
-                showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage
+                showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
+                dailySpecialPrice: parsePrice(dailySpecialPrice),
+                dailySpecialId
             },
             create: {
                 id: 'global',
                 cafeName, cafeTagline, cafeNameNp, cafeTaglineNp,
                 heroImage, logoImage, openHours, location, phone,
-                showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage
+                showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
+                dailySpecialPrice: parsePrice(dailySpecialPrice),
+                dailySpecialId
             }
         });
 

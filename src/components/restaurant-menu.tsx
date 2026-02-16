@@ -166,18 +166,29 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                 <div className="container mx-auto px-4 h-full flex items-center justify-between">
                     <button
                         onClick={() => router.push('/login')}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
                     >
-                        <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                        <div className="relative flex items-center justify-center">
                             {settings?.logoImage ? (
-                                <img src={settings.logoImage} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                                <div className="h-10 w-auto min-w-[40px] relative transition-transform group-hover:scale-105">
+                                    <img src={settings.logoImage} alt="Logo" className="h-full w-auto object-contain" />
+                                </div>
                             ) : (
-                                <ChefHat className="w-5 h-5" />
+                                <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-105">
+                                    <ChefHat className="w-6 h-6" />
+                                </div>
                             )}
                         </div>
-                        <h1 className="font-serif italic text-xl font-bold tracking-tight">
-                            {settings?.cafeName || 'Cafe Delight'}
-                        </h1>
+                        <div className="flex flex-col items-start">
+                            <h1 className="font-serif italic text-xl font-bold tracking-tight leading-none">
+                                {settings?.cafeName || 'Cafe Delight'}
+                            </h1>
+                            {settings?.cafeTagline && (
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1 opacity-70">
+                                    {lang === 'en' ? settings.cafeTagline : settings.cafeTaglineNp}
+                                </p>
+                            )}
+                        </div>
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -224,14 +235,14 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
                     <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-background" />
                 </div>
 
-                <div className="relative z-10 px-6 max-w-3xl mx-auto space-y-6" ref={heroTextRef}>
-                    <p className="hero-text-reveal font-script text-3xl md:text-5xl text-orange-400 drop-shadow-md rotate-[-3deg]">
+                <div className="relative z-10 px-6 max-w-3xl mx-auto space-y-4 md:space-y-6" ref={heroTextRef}>
+                    <p className="hero-text-reveal font-script text-2xl md:text-5xl text-orange-400 drop-shadow-md rotate-[-3deg]">
                         {lang === 'en' ? (settings?.cafeTagline || 'Authentic Flavors') : (settings?.cafeTaglineNp || 'अनिवार्य स्वाद')}
                     </p>
-                    <h2 className="hero-text-reveal font-serif italic text-6xl md:text-8xl font-black text-white drop-shadow-2xl leading-[0.9]">
+                    <h2 className="hero-text-reveal font-serif italic text-4xl sm:text-6xl md:text-8xl font-black text-white drop-shadow-2xl leading-[0.9]">
                         {lang === 'en' ? (settings?.cafeName || 'Taste of Nepal') : (settings?.cafeNameNp || 'नेपालको स्वाद')}
                     </h2>
-                    <p className="hero-text-reveal text-white/90 text-lg md:text-xl font-light max-w-lg mx-auto leading-relaxed drop-shadow-lg">
+                    <p className="hero-text-reveal text-white/90 text-sm md:text-xl font-light max-w-lg mx-auto leading-relaxed drop-shadow-lg">
                         {lang === 'en' ? 'Experience the finest Momos, savory Noodles, and refreshing drinks.' : 'सहरकै उत्कृष्ट मोमो, चाउमिन र पेय पदार्थको अनुभव लिनुहोस्।'}
                     </p>
 

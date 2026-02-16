@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface Category {
     id: string;
@@ -119,27 +120,38 @@ export function MenuManager() {
                 body: JSON.stringify({ nameEn, nameNp })
             });
             if (res.ok) {
-                (e.target as HTMLFormElement).reset();
+                toast.success("Category added successfully")
+                    ; (e.target as HTMLFormElement).reset();
                 fetchCategories();
+            } else {
+                const data = await res.json()
+                toast.error(data.error || "Failed to add category")
             }
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error(e)
+            toast.error("An error occurred")
+        }
     }
 
     const handleDeleteCategory = async (id: string) => {
-        if (!confirm("Delete this category? Only works if it has no items.")) return;
         try {
             const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
-            if (res.ok) fetchCategories();
-            else {
+            if (res.ok) {
+                toast.success("Category deleted")
+                fetchCategories();
+            } else {
                 const err = await res.json();
-                alert(err.error || "Failed deletion");
+                toast.error(err.error || "Failed deletion");
             }
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error(e)
+            toast.error("An error occurred")
+        }
     }
 
     return (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="md:col-span-2 lg:col-span-2">
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Add Menu Item</CardTitle>
                     <CardDescription>Add new dishes to the digital menu.</CardDescription>
