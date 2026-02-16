@@ -13,17 +13,20 @@ import {
 } from "lucide-react"
 import type { Order, ServiceRequest } from "@/lib/types"
 
-const STAFF_USERS = [
-    { username: 'admin', role: 'ADMIN', defaultPassword: 'admin123', dashboard: '/dashboard' },
-    { username: 'chef', role: 'CHEF', defaultPassword: 'chef123', dashboard: '/chef' },
-    { username: 'staff', role: 'STAFF', defaultPassword: 'staff123', dashboard: '/staff' },
-    { username: 'counter', role: 'COUNTER', defaultPassword: 'counter123', dashboard: '/counter' }
-]
+interface SystemUser {
+    id: string
+    username: string
+    role: string
+    displayName?: string | null
+    createdAt: string
+    dashboard?: string
+}
 
 export default function AdminStaffPage() {
     const router = useRouter()
     const [orders, setOrders] = useState<Order[]>([])
     const [requests, setRequests] = useState<ServiceRequest[]>([])
+    const [users, setUsers] = useState<SystemUser[]>([])
     const [resetting, setResetting] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -35,14 +38,26 @@ export default function AdminStaffPage() {
 
     const fetchData = async () => {
         try {
-            const [ordersRes, requestsRes] = await Promise.all([
+            const [ordersRes, requestsRes, usersRes] = await Promise.all([
                 fetch('/api/orders'),
-                fetch('/api/requests')
+                fetch('/api/requests'),
+                fetch('/api/admin/users')
             ])
             const ordersData = await ordersRes.json()
             const requestsData = await requestsRes.json()
+            const usersData = await usersRes.json()
+
+            // Map dashboards to users based on role
+            const mappedUsers = usersData.map((u: any) => ({
+                ...u,
+                dashboard: u.role === 'ADMIN' ? '/dashboard' :
+                    u.role === 'CHEF' ? '/chef' :
+                        u.role === 'COUNTER' ? '/counter' : '/staff'
+            }))
+
             setOrders(ordersData)
             setRequests(requestsData)
+            setUsers(mappedUsers)
         } catch (error) {
             console.error('Failed to fetch data:', error)
         } finally {
@@ -79,7 +94,7 @@ export default function AdminStaffPage() {
         window.open(dashboard, '_blank')
     }
 
-    // Calculate stats for each role
+    // Calculate stats for each role/user
     const getStaffStats = (role: string) => {
         let activeOrders = 0
         let activeRequests = 0
@@ -123,53 +138,59 @@ export default function AdminStaffPage() {
                 </TabsList>
 
                 <TabsContent value="monitor" className="space-y-4 mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {STAFF_USERS.filter(u => u.role !== 'ADMIN').map((user) => {
-                            const stats = getStaffStats(user.role)
-                            return (
-                                <Card key={user.username} className="hover:shadow-lg transition-shadow">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`h-12 w-12 rounded-full flex items-center justify-center ${user.role === 'CHEF' ? 'bg-orange-100' :
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {users.filter(u => u.role !== 'ADMIN').map((user) => {
+                                const stats = getStaffStats(user.role)
+                                return (
+                                    <Card key={user.id} className="hover:shadow-lg transition-shadow">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`h-12 w-12 rounded-full flex items-center justify-center ${user.role === 'CHEF' ? 'bg-orange-100' :
                                                         user.role === 'STAFF' ? 'bg-blue-100' :
                                                             'bg-green-100'
-                                                    }`}>
-                                                    {user.role === 'CHEF' ? <ChefHat className="h-6 w-6 text-orange-600" /> :
-                                                        user.role === 'STAFF' ? <Users className="h-6 w-6 text-blue-600" /> :
-                                                            <Banknote className="h-6 w-6 text-green-600" />}
+                                                        }`}>
+                                                        {user.role === 'CHEF' ? <ChefHat className="h-6 w-6 text-orange-600" /> :
+                                                            user.role === 'STAFF' ? <Users className="h-6 w-6 text-blue-600" /> :
+                                                                <Banknote className="h-6 w-6 text-green-600" />}
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg">{user.displayName || user.username}</CardTitle>
+                                                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">{user.role}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <CardTitle className="text-lg capitalize">{user.username}</CardTitle>
-                                                    <p className="text-sm text-muted-foreground">{user.role}</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-muted/50 p-3 rounded-lg">
+                                                    <p className="text-xs text-muted-foreground">Active Orders</p>
+                                                    <p className="text-2xl font-bold">{stats.activeOrders}</p>
+                                                </div>
+                                                <div className="bg-muted/50 p-3 rounded-lg">
+                                                    <p className="text-xs text-muted-foreground">Requests</p>
+                                                    <p className="text-2xl font-bold">{stats.activeRequests}</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="bg-muted/50 p-3 rounded-lg">
-                                                <p className="text-xs text-muted-foreground">Active Orders</p>
-                                                <p className="text-2xl font-bold">{stats.activeOrders}</p>
-                                            </div>
-                                            <div className="bg-muted/50 p-3 rounded-lg">
-                                                <p className="text-xs text-muted-foreground">Requests</p>
-                                                <p className="text-2xl font-bold">{stats.activeRequests}</p>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            onClick={() => handleViewDashboard(user.dashboard)}
-                                            className="w-full gap-2"
-                                            variant="outline"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                            View {user.role} Dashboard
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
-                    </div>
+                                            <Button
+                                                onClick={() => handleViewDashboard(user.dashboard || '/')}
+                                                className="w-full gap-2"
+                                                variant="outline"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                                View {user.role} Dashboard
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })}
+                        </div>
+                    )}
 
                     <Card className="mt-6">
                         <CardHeader>
@@ -216,37 +237,43 @@ export default function AdminStaffPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {STAFF_USERS.map((user) => (
-                                    <div
-                                        key={user.username}
-                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <User className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold capitalize">{user.username}</p>
-                                                <p className="text-sm text-muted-foreground">{user.role}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                                                Default: {user.defaultPassword}
-                                            </code>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleResetPassword(user.username)}
-                                                disabled={resetting === user.username}
-                                                className="gap-2"
-                                            >
-                                                <RefreshCw className={`h-4 w-4 ${resetting === user.username ? 'animate-spin' : ''}`} />
-                                                {resetting === user.username ? 'Resetting...' : 'Reset Password'}
-                                            </Button>
-                                        </div>
+                                {loading ? (
+                                    <div className="flex justify-center py-8">
+                                        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                                     </div>
-                                ))}
+                                ) : (
+                                    users.map((user) => (
+                                        <div
+                                            key={user.id}
+                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <User className="h-5 w-5 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold">{user.displayName || user.username}</p>
+                                                    <p className="text-sm text-muted-foreground">{user.role}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <code className="text-xs bg-muted px-2 py-1 rounded">
+                                                    ID: {user.username}
+                                                </code>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleResetPassword(user.username)}
+                                                    disabled={resetting === user.username}
+                                                    className="gap-2"
+                                                >
+                                                    <RefreshCw className={`h-4 w-4 ${resetting === user.username ? 'animate-spin' : ''}`} />
+                                                    {resetting === user.username ? 'Resetting...' : 'Reset Password'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -256,7 +283,7 @@ export default function AdminStaffPage() {
                         <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                             <li>Click "Reset Password" to restore a user's password to the default</li>
                             <li>Users can change their password from their dashboard settings</li>
-                            <li>Default passwords are shown above for reference</li>
+                            <li>Default passwords depend on the initial setup (e.g., admin123, chef123)</li>
                         </ul>
                     </div>
                 </TabsContent>

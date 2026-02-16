@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 interface DashboardClientProps {
-    initialUser: { role: string } | null
+    initialUser: { role: string, username?: string, displayName?: string | null } | null
 }
 
 function OrderCard({ order, onUpdateStatus, role }: { order: Order, onUpdateStatus: (id: string, s: OrderStatus, ps?: string) => void, role?: string }) {
@@ -142,7 +142,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const isFirstLoad = useRef(true)
 
     // Initialize with prop
-    const [user, setUser] = useState<{ role: string } | null>(initialUser)
+    const [user, setUser] = useState<{ role: string, username?: string, displayName?: string | null } | null>(initialUser)
 
     const [dataLoading, setDataLoading] = useState(true)
     const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -344,7 +344,7 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                        {settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard'))}
+                        {user?.displayName ? `${user.displayName}'s Dashboard` : (settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')))}
                     </h1>
                     <p className="text-muted-foreground">
                         {user?.role === 'COUNTER' ? 'Manage payments and view orders' : `Manage ${settings?.cafeName || 'Cafe'} orders and service requests`}
