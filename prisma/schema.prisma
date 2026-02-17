@@ -65,6 +65,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   
+  // Auth control
+  sessionVersion Int @default(0) // Incremented to invalidate sessions
+  
   // Location Tracking
   lat       Float?
   lng       Float?
@@ -112,7 +115,8 @@ model DeviceStats {
   deviceId    String   @unique
   totalVisits Int      @default(0)
   totalSpend  Float    @default(0)
-  tier        String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+  totalPoints Float    @default(0)
+  tier        String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND, RUBY, EMERALD
   lastVisit   DateTime @default(now())
   badges      String?  // JSON string of badges e.g. ["Momo Master", "Early Bird"]
   createdAt   DateTime @default(now())
@@ -149,6 +153,15 @@ model SiteSettings {
   dailySpecialImage       String?
   dailySpecialPrice       Float?
   dailySpecialId          String?  // Optional link to real menu item
+  
+  // Gamification & User Limits
+  pointRate               Float    @default(1.5)
+  achievementTitle        String   @default("Your Achievements")
+  achievementDescription  String   @default("Start of the art gamification system! You get points for every Rs. spent.")
+  achievementMilestoneText String   @default("Free Momo Progress")
+  achievementMilestoneTarget Float  @default(10000)
+  
+  maxStaffUsers           Int      @default(10)
   
   updatedAt               DateTime @default(now()) @updatedAt
 }

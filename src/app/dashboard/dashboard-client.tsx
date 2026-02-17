@@ -20,6 +20,7 @@ import { SalesSummary } from "@/components/sales-summary"
 import { TableManager } from "@/components/table-manager"
 import { DeviceManager } from "@/components/device-manager"
 import { SettingsManager } from "@/components/settings-manager"
+import { ResponsiveHeader } from "@/components/responsive-header"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -340,223 +341,210 @@ export function DashboardClient({ initialUser }: DashboardClientProps) {
     const uncompletedRequests = requests.filter(r => r.status === 'PENDING');
 
     return (
-        <div className="min-h-screen bg-muted/40 p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                <div className="flex-1 min-w-0">
-                    <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">
-                        {user?.displayName ? `${user.displayName}'s Dashboard` : (settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')))}
-                    </h1>
-                    <p className="text-muted-foreground text-sm truncate">
-                        {user?.role === 'COUNTER' ? 'Manage payments and view orders' : `Manage ${settings?.cafeName || 'Cafe'} orders and service requests`}
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <div className="flex items-center gap-2">
-                        {user?.role === 'ADMIN' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push('/dashboard/staff')}
-                                className="h-9 gap-2"
-                            >
-                                <ChefHat className="h-4 w-4" />
-                                <span className="hidden lg:inline">Staff</span>
-                            </Button>
-                        )}
-                        <ChangePasswordModal />
-                        <ThemeToggle />
-                    </div>
-                    <div className="flex items-center gap-2 border-l pl-2 border-muted-foreground/20">
-                        {user?.role !== 'ADMIN' && (
-                            <Button variant="outline" size="icon" onClick={testSound} title="Test Notification Sound" className="h-9 w-9 bg-background">
-                                <Volume2 className="h-4 w-4" />
-                            </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="h-9 gap-2 bg-background">
-                            <Bell className="h-4 w-4" />
-                            <Badge variant="destructive" className="h-5 min-w-[20px] px-1 rounded-full">{uncompletedRequests.length}</Badge>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9">
-                            <LogOut className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen bg-muted/40 pb-10">
+            <ResponsiveHeader user={user as any} />
 
-            <Tabs defaultValue="orders" className="w-full">
-                <TabsList className="flex w-full overflow-x-auto h-auto gap-2 bg-transparent p-0 justify-start mb-6 no-scrollbar pb-1">
-                    <TabsTrigger value="orders" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Orders</TabsTrigger>
-                    {user?.role !== 'COUNTER' && (
-                        <TabsTrigger value="requests" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">
-                            Requests
-                            {uncompletedRequests.length > 0 && (
-                                <span className="ml-2 w-2 h-2 rounded-full bg-destructive animate-pulse" />
+            <div className="p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">
+                            {user?.displayName ? `${user.displayName}'s Dashboard` : (settings?.cafeName ? `${settings.cafeName} ${user?.role === 'ADMIN' ? 'Admin' : 'Staff'}` : (user?.role === 'COUNTER' ? 'Counter Dashboard' : (user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Staff Dashboard')))}
+                        </h1>
+                        <p className="text-muted-foreground text-sm truncate">
+                            {user?.role === 'COUNTER' ? 'Manage payments and view orders' : `Manage ${settings?.cafeName || 'Cafe'} orders and service requests`}
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <div className="flex items-center gap-2 border-l pl-2 border-muted-foreground/20">
+                            {user?.role !== 'ADMIN' && (
+                                <Button variant="outline" size="sm" onClick={testSound} title="Test Notification Sound" className="h-9 gap-2 bg-background rounded-full">
+                                    <Volume2 className="h-4 w-4" />
+                                    Test
+                                </Button>
                             )}
-                        </TabsTrigger>
-                    )}
-                    {user?.role === 'ADMIN' && (
-                        <>
-                            <TabsTrigger value="reviews" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Reviews</TabsTrigger>
-                            <TabsTrigger value="menu" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Menu</TabsTrigger>
-                            <TabsTrigger value="stats" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Sales</TabsTrigger>
-                            <TabsTrigger value="devices" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Devices</TabsTrigger>
-                            <TabsTrigger value="settings" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Settings</TabsTrigger>
-                        </>
-                    )}
-                    {user?.role !== 'COUNTER' && (
-                        <TabsTrigger value="tables" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Tables</TabsTrigger>
-                    )}
-                </TabsList>
+                            <Button variant="outline" size="sm" className="h-9 gap-2 bg-background rounded-full">
+                                <Bell className="h-4 w-4" />
+                                <Badge variant="destructive" className="h-5 min-w-[20px] px-1 rounded-full">{uncompletedRequests.length}</Badge>
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-                <TabsContent value="orders">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                        {/* Pending Column - Hidden for Counter unless needed */}
+                <Tabs defaultValue="orders" className="w-full">
+                    <TabsList className="flex w-full overflow-x-auto h-auto gap-2 bg-transparent p-0 justify-start mb-6 no-scrollbar pb-1">
+                        <TabsTrigger value="orders" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">Orders</TabsTrigger>
                         {user?.role !== 'COUNTER' && (
+                            <TabsTrigger value="requests" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background">
+                                Requests
+                                {uncompletedRequests.length > 0 && (
+                                    <span className="ml-2 w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                                )}
+                            </TabsTrigger>
+                        )}
+                        {user?.role === 'ADMIN' && (
+                            <>
+                                <TabsTrigger value="reviews" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Reviews</TabsTrigger>
+                                <TabsTrigger value="menu" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Menu</TabsTrigger>
+                                <TabsTrigger value="stats" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Sales</TabsTrigger>
+                                <TabsTrigger value="devices" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Devices</TabsTrigger>
+                                <TabsTrigger value="settings" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Settings</TabsTrigger>
+                            </>
+                        )}
+                        {user?.role !== 'COUNTER' && (
+                            <TabsTrigger value="tables" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background text-xs sm:text-sm">Tables</TabsTrigger>
+                        )}
+                    </TabsList>
+
+                    <TabsContent value="orders">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                            {/* Pending Column - Hidden for Counter unless needed */}
+                            {user?.role !== 'COUNTER' && (
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                                            <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
+                                        </h2>
+                                        <Badge variant="secondary">{pendingOrders.length}</Badge>
+                                    </div>
+                                    {pendingOrders.map(order => (
+                                        <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Ready to Serve Column (Replaces Preparing focus for Waiter) */}
+                            {user?.role !== 'COUNTER' && (
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                                            <ChefHat className="h-5 w-5 text-blue-500" /> {user?.role === 'ADMIN' ? 'Prep / Ready' : 'Ready to Serve'}
+                                        </h2>
+                                        <Badge variant="secondary">{readyOrders.length + (user?.role === 'ADMIN' ? preparingOrders.length : 0)}</Badge>
+                                    </div>
+                                    {/* Admin sees preparing, Waiter only sees READY usually, but let's show both but different actions */}
+                                    {user?.role === 'ADMIN' && preparingOrders.map(order => (
+                                        <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                    ))}
+                                    {readyOrders.map(order => (
+                                        <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Completed/Served Column - Primary focus for Counter */}
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-semibold flex items-center gap-2">
-                                        <AlertCircle className="h-5 w-5 text-orange-500" /> Pending
+                                        <CheckCircle2 className="h-5 w-5 text-green-500" /> Served {user?.role === 'COUNTER' ? '/ To Pay' : ''}
                                     </h2>
-                                    <Badge variant="secondary">{pendingOrders.length}</Badge>
+                                    <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
                                 </div>
-                                {pendingOrders.map(order => (
+                                {orders.filter(o => o.status === "SERVED").map(order => (
                                     <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
                                 ))}
                             </div>
-                        )}
+                        </div>
+                    </TabsContent>
 
-                        {/* Ready to Serve Column (Replaces Preparing focus for Waiter) */}
-                        {user?.role !== 'COUNTER' && (
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-xl font-semibold flex items-center gap-2">
-                                        <ChefHat className="h-5 w-5 text-blue-500" /> {user?.role === 'ADMIN' ? 'Prep / Ready' : 'Ready to Serve'}
-                                    </h2>
-                                    <Badge variant="secondary">{readyOrders.length + (user?.role === 'ADMIN' ? preparingOrders.length : 0)}</Badge>
-                                </div>
-                                {/* Admin sees preparing, Waiter only sees READY usually, but let's show both but different actions */}
-                                {user?.role === 'ADMIN' && preparingOrders.map(order => (
-                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
-                                ))}
-                                {readyOrders.map(order => (
-                                    <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
-                                ))}
-                            </div>
-                        )}
+                    <TabsContent value="requests">
+                        <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
+                            {uncompletedRequests.length === 0 && <p className="text-muted-foreground">No active requests</p>}
+                            {uncompletedRequests.map(req => (
+                                <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex justify-between items-center">
+                                            <span>Table {req.tableNo}</span>
+                                            <span className="text-xs font-normal text-muted-foreground">{req.time}</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-md py-1 px-3 w-full justify-center">
+                                            {req.type.replace('_', ' ')}
+                                        </Badge>
 
-                        {/* Completed/Served Column - Primary focus for Counter */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" /> Served {user?.role === 'COUNTER' ? '/ To Pay' : ''}
-                                </h2>
-                                <Badge variant="secondary">{orders.filter(o => o.status === "SERVED").length}</Badge>
-                            </div>
-                            {orders.filter(o => o.status === "SERVED").map(order => (
-                                <OrderCard key={order.id} order={order} onUpdateStatus={updateStatus} role={user?.role} />
+                                        {/* Voice Order Player */}
+                                        {req.type === 'VOICE_ORDER' && req.audioData && (
+                                            <div className="mt-4 flex flex-col gap-2">
+                                                <audio
+                                                    controls
+                                                    src={req.audioData}
+                                                    className="w-full h-8"
+                                                />
+                                                <p className="text-xs text-center text-muted-foreground">Listen and create order</p>
+                                            </div>
+                                        )}
+
+                                        {/* Smart Waiter Assignment Info */}
+                                        {req.assignedToUserId && (
+                                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                                                {req.assignedToUserId === (user as any)?.id ?
+                                                    <span className="text-green-600 font-bold">Assigned to YOU</span> :
+                                                    `Assigned to Staff`
+                                                }
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter className="gap-2">
+                                        <Button size="sm" variant="outline" className="w-full flex-1" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
+                                        <Button size="sm" className="w-full flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
+                                    </CardFooter>
+                                </Card>
                             ))}
                         </div>
-                    </div>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="requests">
-                    <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-                        {uncompletedRequests.length === 0 && <p className="text-muted-foreground">No active requests</p>}
-                        {uncompletedRequests.map(req => (
-                            <Card key={req.id} className="border-l-4 border-l-orange-500 shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="flex justify-between items-center">
-                                        <span>Table {req.tableNo}</span>
-                                        <span className="text-xs font-normal text-muted-foreground">{req.time}</span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Badge variant={req.type === 'CALL_WAITER' ? 'destructive' : 'default'} className="text-md py-1 px-3 w-full justify-center">
-                                        {req.type.replace('_', ' ')}
-                                    </Badge>
-
-                                    {/* Voice Order Player */}
-                                    {req.type === 'VOICE_ORDER' && req.audioData && (
-                                        <div className="mt-4 flex flex-col gap-2">
-                                            <audio
-                                                controls
-                                                src={req.audioData}
-                                                className="w-full h-8"
-                                            />
-                                            <p className="text-xs text-center text-muted-foreground">Listen and create order</p>
-                                        </div>
-                                    )}
-
-                                    {/* Smart Waiter Assignment Info */}
-                                    {req.assignedToUserId && (
-                                        <p className="text-xs text-muted-foreground mt-2 text-center">
-                                            {req.assignedToUserId === (user as any)?.id ?
-                                                <span className="text-green-600 font-bold">Assigned to YOU</span> :
-                                                `Assigned to Staff`
-                                            }
-                                        </p>
-                                    )}
-                                </CardContent>
-                                <CardFooter className="gap-2">
-                                    <Button size="sm" variant="outline" className="w-full flex-1" onClick={() => handleRequestAction(req.id, 'CANCELLED')}>Ignore</Button>
-                                    <Button size="sm" className="w-full flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleRequestAction(req.id, 'COMPLETED')}>Done</Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="reviews">
-                    <div className="grid gap-4 mt-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {reviews.map(rev => (
-                            <Card key={rev.id}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        {rev.name}
-                                        <span className="text-orange-400 flex text-sm">
-                                            {Array.from({ length: rev.rating }).map((_, i) => <span key={i}>★</span>)}
-                                        </span>
-                                    </CardTitle>
-                                    <CardDescription>{rev.time}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <p>{rev.comment}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="menu">
-                    <div className="mt-4 max-w-2xl mx-auto md:mx-0">
-                        <MenuManager />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="stats">
-                    <div className="mt-4">
-                        <SalesSummary />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="tables">
-                    <div className="mt-4">
-                        <div className="mt-4">
-                            <TableManager userRole={user?.role} orders={orders} />
+                    <TabsContent value="reviews">
+                        <div className="grid gap-4 mt-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {reviews.map(rev => (
+                                <Card key={rev.id}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            {rev.name}
+                                            <span className="text-orange-400 flex text-sm">
+                                                {Array.from({ length: rev.rating }).map((_, i) => <span key={i}>★</span>)}
+                                            </span>
+                                        </CardTitle>
+                                        <CardDescription>{rev.time}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p>{rev.comment}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
                         </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="devices">
-                    <div className="mt-4">
-                        <DeviceManager />
-                    </div>
-                </TabsContent>
-                <TabsContent value="settings">
-                    <div className="mt-4">
-                        <SettingsManager />
-                    </div>
-                </TabsContent>
-            </Tabs>
+                    </TabsContent>
+
+                    <TabsContent value="menu">
+                        <div className="mt-4 max-w-2xl mx-auto md:mx-0">
+                            <MenuManager />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="stats">
+                        <div className="mt-4">
+                            <SalesSummary />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="tables">
+                        <div className="mt-4">
+                            <div className="mt-4">
+                                <TableManager userRole={user?.role} orders={orders} />
+                            </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="devices">
+                        <div className="mt-4">
+                            <DeviceManager />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="settings">
+                        <div className="mt-4">
+                            <SettingsManager />
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     )
 }

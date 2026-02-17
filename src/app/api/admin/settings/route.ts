@@ -17,7 +17,9 @@ export async function PATCH(request: Request) {
             cafeName, cafeTagline, cafeNameNp, cafeTaglineNp,
             heroImage, logoImage, openHours, location, phone,
             showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
-            dailySpecialPrice, dailySpecialId
+            dailySpecialPrice, dailySpecialId,
+            maxStaffUsers, pointRate, achievementTitle, achievementDescription,
+            achievementMilestoneText, achievementMilestoneTarget
         } = body;
 
         const parsePrice = (price: any) => {
@@ -33,7 +35,13 @@ export async function PATCH(request: Request) {
                 heroImage, logoImage, openHours, location, phone,
                 showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
                 dailySpecialPrice: parsePrice(dailySpecialPrice),
-                dailySpecialId
+                dailySpecialId,
+                maxStaffUsers: parseInt(maxStaffUsers) || 10,
+                pointRate: parseFloat(pointRate) || 1.5,
+                achievementTitle,
+                achievementDescription,
+                achievementMilestoneText,
+                achievementMilestoneTarget: parseFloat(achievementMilestoneTarget) || 10000
             },
             create: {
                 id: 'global',
@@ -41,7 +49,13 @@ export async function PATCH(request: Request) {
                 heroImage, logoImage, openHours, location, phone,
                 showDailySpecial, dailySpecialTitle, dailySpecialDescription, dailySpecialImage,
                 dailySpecialPrice: parsePrice(dailySpecialPrice),
-                dailySpecialId
+                dailySpecialId,
+                maxStaffUsers: parseInt(maxStaffUsers) || 10,
+                pointRate: parseFloat(pointRate) || 1.5,
+                achievementTitle,
+                achievementDescription,
+                achievementMilestoneText,
+                achievementMilestoneTarget: parseFloat(achievementMilestoneTarget) || 10000
             }
         });
 

@@ -16,6 +16,7 @@ import { ChefHat, Scan, ShoppingBag, Phone, MapPin, Clock, Search, X, ChevronRig
 import { DailySpecialPopup } from "./daily-special-popup";
 import { UserProfile } from "@/components/user-profile";
 import { QRScannerModal } from "@/components/qr-scanner-modal";
+import { ResponsiveHeader } from "@/components/responsive-header";
 import { cn } from "@/lib/utils";
 import { useScroll, useTransform, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -66,6 +67,8 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
     const [showScanner, setShowScanner] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+    const [me, setMe] = useState<any>(null);
+
     const handleScanSuccess = (decodedText: string) => {
         setShowScanner(false);
         try {
@@ -90,6 +93,7 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
 
     // Initial Data Fetch
     useEffect(() => {
+        fetchMe();
         Promise.all([
             fetch('/api/categories').then(res => res.ok ? res.json() : []),
             fetch('/api/menu').then(res => res.ok ? res.json() : []),
@@ -106,6 +110,15 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
             setLoading(false);
         });
     }, []);
+
+    async function fetchMe() {
+        try {
+            const res = await fetch('/api/me');
+            if (res.ok) setMe(await res.json());
+        } catch (e) {
+            console.error(e);
+        }
+    }
 
     // GSAP Animations
     useEffect(() => {
@@ -161,66 +174,13 @@ export function RestaurantMenu({ tableNo, onLogout }: RestaurantMenuProps) {
         <div ref={containerRef} className="min-h-screen bg-background text-foreground font-sans selection:bg-orange-500/30 overflow-x-hidden">
             <DailySpecialPopup settings={settings} />
 
-            {/* Header / Nav */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 h-16 transition-all duration-300">
-                <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                    <button
-                        onClick={() => router.push('/login')}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
-                    >
-                        <div className="relative flex items-center justify-center">
-                            {settings?.logoImage ? (
-                                <div className="h-10 w-auto min-w-[40px] relative transition-transform group-hover:scale-105">
-                                    <img src={settings.logoImage} alt="Logo" className="h-full w-auto object-contain" />
-                                </div>
-                            ) : (
-                                <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-105">
-                                    <ChefHat className="w-6 h-6" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex flex-col items-start">
-                            <h1 className="font-serif italic text-xl font-bold tracking-tight leading-none">
-                                {settings?.cafeName || 'Cafe Delight'}
-                            </h1>
-                            {settings?.cafeTagline && (
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1 opacity-70">
-                                    {lang === 'en' ? settings.cafeTagline : settings.cafeTaglineNp}
-                                </p>
-                            )}
-                        </div>
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                        {/* Info Button (Mobile) - Could be a sheet, simpler for now just icon */}
-
-                        <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                        </Button>
-
-                        <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full font-bold text-xs" onClick={() => setLang(lang === 'en' ? 'np' : 'en')}>
-                            {lang === 'en' ? 'NP' : 'EN'}
-                        </Button>
-
-                        <UserProfile />
-
-                        {!tableNo && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="hidden md:flex rounded-full gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-50"
-                                onClick={() => setShowScanner(true)}
-                            >
-                                <Scan className="w-4 h-4" />
-                                Scan Table QR
-                            </Button>
-                        )}
-
-
-                    </div>
-                </div>
-            </header>
+            <ResponsiveHeader
+                user={me || undefined}
+                settings={settings}
+                lang={lang}
+                onLangToggle={() => setLang(lang === 'en' ? 'np' : 'en')}
+                onScanQR={() => setShowScanner(true)}
+            />
 
             {/* Hero Section */}
             <section className="hero-section relative h-[90vh] flex items-center justify-center text-center overflow-hidden">

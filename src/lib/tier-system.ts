@@ -39,6 +39,22 @@ export const TIER_LEVELS = {
         color: '#B9F2FF',
         benefits: ['20% discount', 'VIP lounge access', 'Personal chef consultation'],
         icon: '👑'
+    },
+    RUBY: {
+        name: 'Ruby',
+        minVisits: 100,
+        minSpend: 100000,
+        color: '#E0115F',
+        benefits: ['25% discount', 'Exclusive food tasting invitations', 'Reserved parking'],
+        icon: '🎯'
+    },
+    EMERALD: {
+        name: 'Emerald',
+        minVisits: 200,
+        minSpend: 250000,
+        color: '#50C878',
+        benefits: ['30% discount', 'Lifetime anniversary rewards', 'Priority in all festival bookings'],
+        icon: '🎋'
     }
 } as const
 
@@ -46,17 +62,19 @@ export type TierLevel = keyof typeof TIER_LEVELS
 
 // Calculate tier based on visits and spending
 export function calculateTier(visits: number, totalSpend: number): TierLevel {
-    if (visits >= 50 && totalSpend >= 50000) return 'DIAMOND'
-    if (visits >= 30 && totalSpend >= 25000) return 'PLATINUM'
-    if (visits >= 15 && totalSpend >= 10000) return 'GOLD'
-    if (visits >= 5 && totalSpend >= 2000) return 'SILVER'
+    if (visits >= 200 || totalSpend >= 250000) return 'EMERALD'
+    if (visits >= 100 || totalSpend >= 100000) return 'RUBY'
+    if (visits >= 50 || totalSpend >= 50000) return 'DIAMOND'
+    if (visits >= 30 || totalSpend >= 25000) return 'PLATINUM'
+    if (visits >= 15 || totalSpend >= 10000) return 'GOLD'
+    if (visits >= 5 || totalSpend >= 2000) return 'SILVER'
     return 'BRONZE'
 }
 
 // Get progress to next tier
 export function getTierProgress(visits: number, totalSpend: number) {
     const currentTier = calculateTier(visits, totalSpend)
-    const tierOrder: TierLevel[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND']
+    const tierOrder: TierLevel[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'RUBY', 'EMERALD']
     const currentIndex = tierOrder.indexOf(currentTier)
 
     if (currentIndex === tierOrder.length - 1) {

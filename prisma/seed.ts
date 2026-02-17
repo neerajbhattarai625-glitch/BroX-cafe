@@ -3,59 +3,59 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    // Categories
-    const catMomo = await prisma.category.create({
-        data: { nameEn: 'Momo', nameNp: 'मोमो' }
+    // Initial Users
+    await prisma.user.upsert({
+        where: { username: 'admin' },
+        update: {},
+        create: {
+            username: 'admin',
+            password: 'admin123',
+            role: 'ADMIN',
+            displayName: 'System Admin'
+        }
     })
-    const catNoodles = await prisma.category.create({
-        data: { nameEn: 'Noodles', nameNp: 'चाउमिन/थुक्पा' }
+    await prisma.user.upsert({
+        where: { username: 'chef' },
+        update: {},
+        create: {
+            username: 'chef',
+            password: 'chef123',
+            role: 'CHEF',
+            displayName: 'Head Chef'
+        }
     })
-    const catDrinks = await prisma.category.create({
-        data: { nameEn: 'Drinks', nameNp: 'पेय पदार्थ' }
+    await prisma.user.upsert({
+        where: { username: 'staff' },
+        update: {},
+        create: {
+            username: 'staff',
+            password: 'staff123',
+            role: 'STAFF',
+            displayName: 'Floor Staff'
+        }
     })
-
-    // Items
-    await prisma.menuItem.create({
-        data: {
-            nameEn: 'Steam Buff Momo',
-            nameNp: 'बफ मोमो (स्टिम)',
-            description: 'Juicy buff mince filled dumplings, served with spicy achar.',
-            price: 150,
-            categoryId: catMomo.id,
-            image: 'https://images.unsplash.com/photo-1626804475297-411dbcc8c4fb?w=800&q=80',
+    await prisma.user.upsert({
+        where: { username: 'counter' },
+        update: {},
+        create: {
+            username: 'counter',
+            password: 'counter123',
+            role: 'COUNTER',
+            displayName: 'Counter Desk'
         }
     })
 
-    await prisma.menuItem.create({
-        data: {
-            nameEn: 'Veg Momo',
-            nameNp: 'भेज मोमो',
-            description: 'Fresh vegetable filling with special herbs.',
-            price: 120,
-            categoryId: catMomo.id,
-            image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&q=80',
-        }
-    })
-
-    await prisma.menuItem.create({
-        data: {
-            nameEn: 'Chicken Thukpa',
-            nameNp: 'चिकेन थुक्पा',
-            description: 'Hot noodle soup with chicken and veggies.',
-            price: 180,
-            categoryId: catNoodles.id,
-            image: 'https://images.unsplash.com/photo-1625167359766-1514a586b614?w=800&q=80',
-        }
-    })
-
-    await prisma.menuItem.create({
-        data: {
-            nameEn: 'Masala Tea',
-            nameNp: 'मसला चिया',
-            description: 'Authentic Nepali masala tea.',
-            price: 50,
-            categoryId: catDrinks.id,
-            image: 'https://images.unsplash.com/photo-1616164295171-881b8577f893?w=800&q=80',
+    // Initial Site Settings
+    await prisma.siteSettings.upsert({
+        where: { id: 'global' },
+        update: {},
+        create: {
+            id: 'global',
+            cafeName: "Daddy's Kitchen",
+            cafeTagline: "Authentic Flavors",
+            location: "Lakeside, Pokhara",
+            openHours: "10am - 10pm",
+            maxStaffUsers: 10
         }
     })
 

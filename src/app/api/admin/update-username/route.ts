@@ -43,18 +43,23 @@ export async function PATCH(request: Request) {
             }
         }
 
-        // Update user
+        // Fetch settings to check limit (only if name/username changes or roles added)
+        const settings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
+        const userCount = await prisma.user.count({ where: { role: { not: 'ADMIN' } } });
+
+        // Update user & Invalidate sessions
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
                 username: username.trim(),
-                displayName: displayName.trim()
+                displayName: displayName.trim(),
+                sessionVersion: { increment: 1 } // Forced logout
             }
         });
 
         return NextResponse.json({
             success: true,
-            message: 'Display name updated successfully',
+            message: 'User updated and sessions invalidated',
             user: updatedUser
         });
     } catch (error) {

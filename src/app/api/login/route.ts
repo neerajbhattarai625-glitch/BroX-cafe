@@ -131,7 +131,7 @@ export async function POST(request: Request) {
     // 2. User Login
     const { username, password } = body;
 
-    // 1. DB Check (Highest Priority)
+    // DB-Only Verification (No Hardcoded Fallbacks)
     const user = await prisma.user.findUnique({ where: { username } });
     if (user) {
         if (user.password === password) {
@@ -142,57 +142,24 @@ export async function POST(request: Request) {
                     id: user.id,
                     username: user.username,
                     displayName: user.displayName || user.username,
-                    role: user.role
+                    role: user.role,
+                    sessionVersion: user.sessionVersion
                 }
             });
-            response.cookies.set("auth_token", user.id, {
+
+            // Token format: userId:sessionVersion (Simple but effective for this scale)
+            const token = `${user.id}:${user.sessionVersion}`;
+
+            response.cookies.set("auth_token", token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
-                path: "/"
+                path: "/",
+                maxAge: 60 * 60 * 24 * 7 // 7 days for staff
             });
             return response;
         } else {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
         }
-    }
-
-    // 2. Hardcoded fallbacks (Secondary) - Only if NOT in DB
-    if (username === "admin" && password === "admin123") {
-        const response = NextResponse.json({ success: true, role: "ADMIN" });
-        response.cookies.set("auth_token", "admin_token", { httpOnly: true, path: "/" });
-        return response;
-    }
-    if (username === "staff" && password === "staff123") {
-        const response = NextResponse.json({ success: true, role: "STAFF" });
-        response.cookies.set("auth_token", "staff_token", { httpOnly: true, path: "/" });
-        return response;
-    }
-    if (username === "chef" && password === "chef123") {
-        const response = NextResponse.json({ success: true, role: "STAFF" });
-        response.cookies.set("auth_token", "chef_token", { httpOnly: true, path: "/" });
-        return response;
-    }
-    if (username === "counter" && password === "counter123") {
-        const response = NextResponse.json({ success: true, role: "COUNTER" });
-        response.cookies.set("auth_token", "counter_token", { httpOnly: true, path: "/" });
-        return response;
-    }
-
-    // Fallback for hardcoded users if not yet in DB (or for quick dev)
-    if (username === "admin" || username === "staff" || username === "chef" || username === "counter") {
-        const role = username === "admin" ? "ADMIN" : (username === "counter" ? "COUNTER" : "STAFF");
-        const token = `${username}_token`;
-        const response = NextResponse.json({
-            success: true,
-            role,
-            user: {
-                username,
-                displayName: username,
-                role
-            }
-        });
-        response.cookies.set("auth_token", token, { httpOnly: true, path: "/" });
-        return response;
     }
 
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });

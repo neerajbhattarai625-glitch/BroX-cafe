@@ -29,7 +29,14 @@ export function SettingsManager() {
         dailySpecialDescription: "",
         dailySpecialImage: "",
         dailySpecialPrice: "",
-        dailySpecialId: ""
+        dailySpecialId: "",
+        // New Gamification & Limits
+        maxStaffUsers: 10,
+        pointRate: 1.5,
+        achievementTitle: "Your Achievements",
+        achievementDescription: "Start of the art gamification system! You get points for every Rs. spent.",
+        achievementMilestoneText: "Free Momo Progress",
+        achievementMilestoneTarget: 10000
     })
 
     useEffect(() => {
@@ -56,7 +63,13 @@ export function SettingsManager() {
                     dailySpecialDescription: data.dailySpecialDescription || "",
                     dailySpecialImage: data.dailySpecialImage || "",
                     dailySpecialPrice: data.dailySpecialPrice?.toString() || "",
-                    dailySpecialId: data.dailySpecialId || ""
+                    dailySpecialId: data.dailySpecialId || "",
+                    maxStaffUsers: data.maxStaffUsers || 10,
+                    pointRate: data.pointRate || 1.5,
+                    achievementTitle: data.achievementTitle || "Your Achievements",
+                    achievementDescription: data.achievementDescription || "",
+                    achievementMilestoneText: data.achievementMilestoneText || "Free Momo Progress",
+                    achievementMilestoneTarget: data.achievementMilestoneTarget || 10000
                 })
             }
         } catch (error) {
@@ -186,6 +199,48 @@ export function SettingsManager() {
                                 <Phone className="h-3 w-3" /> Contact Phone
                             </Label>
                             <Input id="phone" name="phone" value={settings.phone} onChange={handleChange} placeholder="+977..." />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Gamification Settings */}
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Star className="h-4 w-4 text-purple-500" /> Advanced Gamification
+                        </CardTitle>
+                        <CardDescription>Customize how customers see their achievements and points</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="achievementTitle">Achievement Modal Title</Label>
+                                <Input id="achievementTitle" name="achievementTitle" value={settings.achievementTitle} onChange={handleChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="achievementMilestoneText">Milestone Title (e.g. Free Momo Progress)</Label>
+                                <Input id="achievementMilestoneText" name="achievementMilestoneText" value={settings.achievementMilestoneText} onChange={handleChange} />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="achievementMilestoneTarget">Target Amount (Rs.) for Reward</Label>
+                                <Input id="achievementMilestoneTarget" name="achievementMilestoneTarget" type="number" value={settings.achievementMilestoneTarget} onChange={handleChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="maxStaffUsers">Max Staff/Chef Accounts Allowed</Label>
+                                <Input id="maxStaffUsers" name="maxStaffUsers" type="number" value={settings.maxStaffUsers} onChange={handleChange} />
+                            </div>
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="achievementDescription">Achievement Modal Description</Label>
+                            <Textarea
+                                id="achievementDescription"
+                                name="achievementDescription"
+                                value={settings.achievementDescription}
+                                onChange={(e) => setSettings(prev => ({ ...prev, achievementDescription: e.target.value }))}
+                                className="h-24"
+                            />
                         </div>
                     </CardContent>
                 </Card>

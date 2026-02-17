@@ -6,40 +6,66 @@ import { calculateTier } from '@/lib/tier-system';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { deviceId, totalSpend } = body;
+        const { deviceId, type, amount } = body; // Added type and amount
 
         if (!deviceId) {
             return NextResponse.json({ error: 'Device ID required' }, { status: 400 });
         }
 
-        // Upsert device stats: create if not exists, increment visits if exists
-        const stats = await prisma.deviceStats.upsert({
-            where: { deviceId },
-            create: {
-                deviceId,
-                totalVisits: 1,
-                totalSpend: totalSpend || 0,
-                tier: 'BRONZE',
-                lastVisit: new Date(),
-            },
-            update: {
-                totalVisits: { increment: 1 },
-                totalSpend: totalSpend ? { increment: totalSpend } : undefined,
-                lastVisit: new Date(),
-            },
+        // Find or create device stats
+        let deviceStats = await prisma.deviceStats.findUnique({
+            where: { deviceId }
         });
 
-        // Calculate and update tier
-        const newTier = calculateTier(stats.totalVisits, stats.totalSpend);
-        if (newTier !== stats.tier) {
+        if (!deviceStats) {
+            // Create new device stats if not found
+            deviceStats = await prisma.deviceStats.create({
+                data: {
+                    deviceId,
+                    totalVisits: 0, // Will be incremented if type is VISIT
+                    totalSpend: 0,
+                    totalPoints: 0,
+                    tier: 'BRONZE',
+                    lastVisit: new Date(),
+                }
+            });
+        }
+
+        if (type === 'VISIT') {
+            // Only count visit if 24h passed OR strictly new (not implementation here yet)
+            // For now, always increment visit
+            deviceStats = await prisma.deviceStats.update({
+                where: { deviceId },
+                data: {
+                    totalVisits: { increment: 1 },
+                    lastVisit: new Date()
+                }
+            })
+        } else if (type === 'SPEND' && amount) {
+            // Get rate from settings
+            const settings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
+            const rate = settings?.pointRate ?? 1.5;
+            const pointsEarned = amount * rate;
+
+            deviceStats = await prisma.deviceStats.update({
+                where: { deviceId },
+                data: {
+                    totalSpend: { increment: amount },
+                    totalPoints: { increment: pointsEarned }
+                }
+            })
+        }
+
+        // Recalculate Tier
+        const newTier = calculateTier(deviceStats.totalVisits, deviceStats.totalSpend);
+        if (newTier !== deviceStats.tier) {
             await prisma.deviceStats.update({
                 where: { deviceId },
                 data: { tier: newTier }
             });
-            stats.tier = newTier;
         }
 
-        return NextResponse.json(stats);
+        return NextResponse.json(deviceStats);
     } catch (error) {
         console.error("Error tracking visit:", error);
         return NextResponse.json({ error: 'Failed to track visit' }, { status: 500 });
