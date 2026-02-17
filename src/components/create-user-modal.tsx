@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { UserPlus, ShieldAlert } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function CreateUserModal({ onSuccess }: { onSuccess?: () => void }) {
     const [open, setOpen] = useState(false)
