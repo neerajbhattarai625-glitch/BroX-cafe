@@ -207,7 +207,7 @@ export function ResponsiveHeader({ user, logoOnly, settings, lang, onLangToggle,
                                 </SheetContent>
                             </Sheet>
 
-                            {user && (
+                            {user ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -216,6 +216,16 @@ export function ResponsiveHeader({ user, logoOnly, settings, lang, onLangToggle,
                                 >
                                     <LogOut className="h-4 w-4" />
                                     Logout
+                                </Button>
+                            ) : !logoOnly && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hidden md:flex gap-2 rounded-full border-orange-200 text-orange-700 hover:bg-orange-50"
+                                    onClick={() => router.push('/login')}
+                                >
+                                    <ShieldCheck className="h-4 w-4" />
+                                    Staff Login
                                 </Button>
                             )}
                         </>

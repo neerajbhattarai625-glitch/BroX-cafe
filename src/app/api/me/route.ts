@@ -8,7 +8,7 @@ export async function GET() {
         const authCookie = cookieStore.get("auth_token");
 
         if (!authCookie) {
-            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+            return NextResponse.json(null, { status: 200 });
         }
 
         // Check hardcoded users first

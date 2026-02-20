@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Medal, MapPin, Wallet, Gift, Star } from "lucide-react"
@@ -76,6 +76,9 @@ export function UserProfile({ text = "My Points" }: { text?: string }) {
                             <Trophy className="h-8 w-8 text-yellow-300 drop-shadow-sm" />
                             {settings?.achievementTitle || "Your Achievements"}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Your points, tier, and reward progress.
+                        </DialogDescription>
                     </DialogHeader>
                     <p className="text-orange-50 text-sm mt-2 leading-relaxed opacity-90">
                         {settings?.achievementDescription || "Start of the art gamification system! You get points for every Rs. spent."}
